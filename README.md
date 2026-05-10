@@ -18,3 +18,5 @@ I just created this in  really fast and will refine it later. i would be really 
 For example would it be best over the command palette or left click or as choose option when adding links (allthough i am not pretty sure obsidian has an api command for that).
 I am happy about all feedback and wishes/ideas.
 Also if you have questions or encounter bugs or other problems feel free to write me an email or open an Issue here on github, since it´s a really small addon it should be fast to fix.
+
+Github: https://github.com/Lurian-Works
