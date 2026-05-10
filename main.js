@@ -60,6 +60,34 @@ var LinkPreviewPlugin = class extends import_obsidian.Plugin {
         }
       }
     );
+    this.addCommand({
+      id: "convert-to-link-preview-card",
+      name: "Convert to link preview card",
+      editorCallback: (editor) => {
+        const selectedText = editor.getSelection().trim();
+        if (!selectedText) {
+          new import_obsidian.Notice("Select a link first.");
+          return;
+        }
+        const url = this.extractUrl(selectedText);
+        if (!url) {
+          new import_obsidian.Notice("Selected text does not contain a valid URL.");
+          return;
+        }
+        editor.replaceSelection(`\`\`\`link-preview
+${url}
+\`\`\``);
+      }
+    });
+  }
+  extractUrl(value) {
+    const markdownLinkMatch = value.match(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/i);
+    if (markdownLinkMatch?.[1])
+      return markdownLinkMatch[1];
+    const plainUrlMatch = value.match(/https?:\/\/\S+/i);
+    if (plainUrlMatch?.[0])
+      return plainUrlMatch[0];
+    return null;
   }
   async getOpenGraphData(url) {
     const cached = this.cache.get(url);

@@ -1,5 +1,5 @@
 
-import { Plugin, requestUrl } from "obsidian";
+import { Notice, Plugin, requestUrl } from "obsidian";
 
 type OgData = {
   url: string;
@@ -46,6 +46,38 @@ export default class LinkPreviewPlugin extends Plugin {
         }
       }
     );
+
+    this.addCommand({
+      id: "convert-to-link-preview-card",
+      name: "Convert to link preview card",
+      editorCallback: (editor) => {
+        const selectedText = editor.getSelection().trim();
+
+        if (!selectedText) {
+          new Notice("Select a link first.");
+          return;
+        }
+
+        const url = this.extractUrl(selectedText);
+
+        if (!url) {
+          new Notice("Selected text does not contain a valid URL.");
+          return;
+        }
+
+        editor.replaceSelection(`\`\`\`link-preview\n${url}\n\`\`\``);
+      },
+    });
+  }
+
+  private extractUrl(value: string): string | null {
+    const markdownLinkMatch = value.match(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/i);
+    if (markdownLinkMatch?.[1]) return markdownLinkMatch[1];
+
+    const plainUrlMatch = value.match(/https?:\/\/\S+/i);
+    if (plainUrlMatch?.[0]) return plainUrlMatch[0];
+
+    return null;
   }
 
   private async getOpenGraphData(url: string): Promise<OgData> {
