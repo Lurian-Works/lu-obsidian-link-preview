@@ -7,6 +7,11 @@ Works great for me.
 
 <img width="540" alt="example preview" src="readme-src/Screenshot 2026-05-10 1122091.png">
 
+## How to Install:
+download lu-obsidian-link-preview.zip from the latest release
+-> unzip it and move the inner folder to your obsidian vault in the .obsidian/plugins/ folder
+-> enable it in the community plugin settings
+
 ## How To Use:
 there are two ways of creating a preview card
 
