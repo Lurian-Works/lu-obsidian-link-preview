@@ -1,14 +1,18 @@
-Link preview cards for Obsidian
+# Link preview cards for Obsidian
 
-first test version, works good but just in reading mode for now. I will for sure add editing mode support, maybe in the next days.
+#### first test version. <br> 
+works good but just in reading mode for now. Also without a quick command for now.
+I will for sure add edit mode support and a less manual way to add the links in the next days.
 
-How To Use:
+#### How To Use:
 
 Just create a codeblock like this:
-![Example Codeblock](readme-src/Screenshot 2026-05-10 1122289.png)
+
+<img width="540" alt="example codeblock" src="readme-src/Screenshot 2026-05-10 1122289.png">
 
 this will result in this:
-![Example Preview](readme-src/Screenshot 2026-05-10 1122091.png)
+
+<img width="540" alt="example preview" src="readme-src/Screenshot 2026-05-10 1122091.png">
 
 I just created this in  really fast and will refine it later. i would be really glad if someone likes to try and can give a little bit feedback on how you would like to use it (just over a codelock is a little bit shitty for the most i think). 
 For example would it be best over the command palette or left click or as choose option when adding links (allthough i am not pretty sure obsidian has an api command for that).
