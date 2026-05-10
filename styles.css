@@ -1,0 +1,54 @@
+.lp-card {
+  display: flex;
+  gap: 1rem;
+  overflow: hidden;
+  margin: 1rem 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 14px;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  text-decoration: none;
+}
+
+.lp-card:hover {
+  background: var(--background-secondary-alt);
+}
+
+.lp-image {
+  width: 160px;
+  min-width: 160px;
+  object-fit: cover;
+  background: var(--background-primary);
+}
+
+.lp-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem;
+}
+
+.lp-title {
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+.lp-description {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.lp-site {
+  margin-top: auto;
+  color: var(--text-faint);
+  font-size: 0.8em;
+}
+
+.lp-loading,
+.lp-error {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+}

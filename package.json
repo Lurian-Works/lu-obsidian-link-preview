@@ -1,0 +1,16 @@
+{
+  "name": "lu-obsidian-link-preview",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "obsidian": "latest",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+
+  }
+}

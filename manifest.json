@@ -1,0 +1,11 @@
+{
+  "id": "lu-obsidian-link-preview",
+  "name": "Link Preview OG",
+  "version": "0.1.0",
+  "minAppVersion": "1.16.0",
+  "description": "Displays web links as Open Graph preview cards.",
+  "author": "Lurian",
+  "authorUrl": "",
+  "isDesktopOnly": false,
+  "main": "main.js"
+}
