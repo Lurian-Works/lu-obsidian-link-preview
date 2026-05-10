@@ -10,7 +10,7 @@ Works great for me.
 ## How To Use:
 there are two ways of creating a preview card
 
-#### 1. Command Palette
+### 1. Command Palette
 
 > <img width="540" alt="example codeblock" src="readme-src/Screenshot 2026-05-10 144227.png">
 >
@@ -26,7 +26,7 @@ you can select simple text links like https://example.com and also named links l
 while www. isn`t necessary but supported in the link, https:// is always necessary  
 
 
-#### 2. Manual 
+### 2. Manual 
 > create a codeblock with "link-preview" as identifier and add the plain link inside the codeblock.  
 > or of course craete a manual inline link preview with [(lu-link-prev: https://example.com)]  
 > Here is an example of both options:
