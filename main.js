@@ -30,36 +30,39 @@ var LinkPreviewPlugin = class extends import_obsidian.Plugin {
     this.cache = /* @__PURE__ */ new Map();
   }
   async onload() {
+    this.registerCodeBlockPreview();
+    this.registerInlinePreview();
+    this.registerCommands();
+  }
+  registerCodeBlockPreview() {
     this.registerMarkdownCodeBlockProcessor(
       "link-preview",
       async (source, el) => {
         const url = source.trim();
-        if (!url || !/^https?:\/\//i.test(url)) {
-          el.createEl("div", {
-            text: "Invalid link-preview URL.",
-            cls: "lu-lp-error"
-          });
+        if (!this.isValidUrl(url)) {
+          this.renderError(el, "Invalid link-preview URL.");
           return;
         }
-        el.empty();
-        el.createEl("div", {
-          text: "Loading preview...",
-          cls: "lu-lp-loading"
-        });
-        try {
-          const data = await this.getOpenGraphData(url);
-          el.empty();
-          this.renderCard(el, data);
-        } catch (error) {
-          el.empty();
-          el.createEl("div", {
-            text: "Could not load link preview.",
-            cls: "lu-lp-error"
-          });
-          console.error("Link preview failed:", error);
-        }
+        await this.renderPreview(el, url);
       }
     );
+  }
+  registerInlinePreview() {
+    this.registerMarkdownPostProcessor((element) => {
+      const walker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT
+      );
+      const textNodes = [];
+      while (walker.nextNode()) {
+        textNodes.push(walker.currentNode);
+      }
+      for (const node of textNodes) {
+        this.replaceInlinePreviewSyntax(node);
+      }
+    });
+  }
+  registerCommands() {
     this.addCommand({
       id: "convert-to-link-preview-card",
       name: "Convert to link preview card",
@@ -79,6 +82,75 @@ ${url}
 \`\`\``);
       }
     });
+    this.addCommand({
+      id: "convert-to-inline-link-preview-card",
+      name: "Convert to inline link preview card",
+      editorCallback: (editor) => {
+        const selectedText = editor.getSelection().trim();
+        if (!selectedText) {
+          new import_obsidian.Notice("Select a link first.");
+          return;
+        }
+        const url = this.extractUrl(selectedText);
+        if (!url) {
+          new import_obsidian.Notice("Selected text does not contain a valid URL.");
+          return;
+        }
+        editor.replaceSelection(`[(lu-link-prev: ${url})]`);
+      }
+    });
+  }
+  replaceInlinePreviewSyntax(node) {
+    const text = node.nodeValue;
+    if (!text)
+      return;
+    const regex = /\[\(lu-link-prev:\s*(https?:\/\/[^\s)]+)\s*\)\]/gi;
+    const matches = [...text.matchAll(regex)];
+    if (!matches.length)
+      return;
+    const fragment = document.createDocumentFragment();
+    let lastIndex = 0;
+    for (const match of matches) {
+      const fullMatch = match[0];
+      const url = match[1];
+      const start = match.index ?? 0;
+      const before = text.slice(lastIndex, start);
+      if (before) {
+        fragment.appendChild(document.createTextNode(before));
+      }
+      const container = document.createElement("span");
+      container.classList.add("lu-lp-inline-container");
+      fragment.appendChild(container);
+      this.renderPreview(container, url);
+      lastIndex = start + fullMatch.length;
+    }
+    const after = text.slice(lastIndex);
+    if (after) {
+      fragment.appendChild(document.createTextNode(after));
+    }
+    node.parentNode?.replaceChild(fragment, node);
+  }
+  async renderPreview(el, url) {
+    el.empty();
+    el.createEl("div", {
+      text: "Loading preview...",
+      cls: "lu-lp-loading"
+    });
+    try {
+      const data = await this.getOpenGraphData(url);
+      el.empty();
+      this.renderCard(el, data);
+    } catch (error) {
+      this.renderError(el, "Could not load link preview.");
+      console.error("Link preview failed:", error);
+    }
+  }
+  renderError(el, message) {
+    el.empty();
+    el.createEl("div", {
+      text: message,
+      cls: "lu-lp-error"
+    });
   }
   extractUrl(value) {
     const markdownLinkMatch = value.match(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/i);
@@ -88,6 +160,9 @@ ${url}
     if (plainUrlMatch?.[0])
       return plainUrlMatch[0];
     return null;
+  }
+  isValidUrl(value) {
+    return /^https?:\/\//i.test(value);
   }
   async getOpenGraphData(url) {
     const cached = this.cache.get(url);

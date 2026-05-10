@@ -1,4 +1,3 @@
-
 import { Notice, Plugin, requestUrl } from "obsidian";
 
 type OgData = {
@@ -13,40 +12,47 @@ export default class LinkPreviewPlugin extends Plugin {
   private cache = new Map<string, OgData>();
 
   async onload() {
+    this.registerCodeBlockPreview();
+    this.registerInlinePreview();
+    this.registerCommands();
+  }
+
+  private registerCodeBlockPreview() {
     this.registerMarkdownCodeBlockProcessor(
       "link-preview",
       async (source, el) => {
         const url = source.trim();
 
-        if (!url || !/^https?:\/\//i.test(url)) {
-          el.createEl("div", {
-            text: "Invalid link-preview URL.",
-            cls: "lu-lp-error",
-          });
+        if (!this.isValidUrl(url)) {
+          this.renderError(el, "Invalid link-preview URL.");
           return;
         }
 
-        el.empty();
-        el.createEl("div", {
-          text: "Loading preview...",
-          cls: "lu-lp-loading",
-        });
-
-        try {
-          const data = await this.getOpenGraphData(url);
-          el.empty();
-          this.renderCard(el, data);
-        } catch (error) {
-          el.empty();
-          el.createEl("div", {
-            text: "Could not load link preview.",
-            cls: "lu-lp-error",
-          });
-          console.error("Link preview failed:", error);
-        }
+        await this.renderPreview(el, url);
       }
     );
+  }
 
+  private registerInlinePreview() {
+    this.registerMarkdownPostProcessor((element) => {
+      const walker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT
+      );
+
+      const textNodes: Text[] = [];
+
+      while (walker.nextNode()) {
+        textNodes.push(walker.currentNode as Text);
+      }
+
+      for (const node of textNodes) {
+        this.replaceInlinePreviewSyntax(node);
+      }
+    });
+  }
+
+  private registerCommands() {
     this.addCommand({
       id: "convert-to-link-preview-card",
       name: "Convert to link preview card",
@@ -68,6 +74,93 @@ export default class LinkPreviewPlugin extends Plugin {
         editor.replaceSelection(`\`\`\`link-preview\n${url}\n\`\`\``);
       },
     });
+    this.addCommand({
+      id: "convert-to-inline-link-preview-card",
+      name: "Convert to inline link preview card",
+      editorCallback: (editor) => {
+        const selectedText = editor.getSelection().trim();
+
+        if (!selectedText) {
+          new Notice("Select a link first.");
+          return;
+        }
+
+        const url = this.extractUrl(selectedText);
+
+        if (!url) {
+          new Notice("Selected text does not contain a valid URL.");
+          return;
+        }
+
+        editor.replaceSelection(`[(lu-link-prev: ${url})]`);
+      },
+    });
+  }
+
+  private replaceInlinePreviewSyntax(node: Text) {
+    const text = node.nodeValue;
+    if (!text) return;
+
+    const regex = /\[\(lu-link-prev:\s*(https?:\/\/[^\s)]+)\s*\)\]/gi;
+    const matches = [...text.matchAll(regex)];
+
+    if (!matches.length) return;
+
+    const fragment = document.createDocumentFragment();
+    let lastIndex = 0;
+
+    for (const match of matches) {
+      const fullMatch = match[0];
+      const url = match[1];
+      const start = match.index ?? 0;
+
+      const before = text.slice(lastIndex, start);
+      if (before) {
+        fragment.appendChild(document.createTextNode(before));
+      }
+
+      const container = document.createElement("span");
+      container.classList.add("lu-lp-inline-container");
+
+      fragment.appendChild(container);
+      this.renderPreview(container, url);
+
+      lastIndex = start + fullMatch.length;
+    }
+
+    const after = text.slice(lastIndex);
+    if (after) {
+      fragment.appendChild(document.createTextNode(after));
+    }
+
+    node.parentNode?.replaceChild(fragment, node);
+  }
+
+  private async renderPreview(el: HTMLElement, url: string) {
+    el.empty();
+
+    el.createEl("div", {
+      text: "Loading preview...",
+      cls: "lu-lp-loading",
+    });
+
+    try {
+      const data = await this.getOpenGraphData(url);
+      el.empty();
+      this.renderCard(el, data);
+    } catch (error) {
+      this.renderError(el, "Could not load link preview.");
+      console.error("Link preview failed:", error);
+    }
+  }
+
+  private renderError(el: HTMLElement, message: string) {
+    el.empty();
+
+    el.createEl("div", {
+      text: message,
+      cls: "lu-lp-error",
+    });
   }
 
   private extractUrl(value: string): string | null {
@@ -78,6 +171,10 @@ export default class LinkPreviewPlugin extends Plugin {
     if (plainUrlMatch?.[0]) return plainUrlMatch[0];
 
     return null;
+  }
+
+  private isValidUrl(value: string): boolean {
+    return /^https?:\/\//i.test(value);
   }
 
   private async getOpenGraphData(url: string): Promise<OgData> {
@@ -104,12 +201,11 @@ export default class LinkPreviewPlugin extends Plugin {
       description:
         this.getMeta(html, "og:description") ||
         this.getMeta(html, "twitter:description"),
-      image:
-        this.toAbsoluteUrl(
-          this.getMeta(html, "og:image") ||
-            this.getMeta(html, "twitter:image"),
-          url
-        ),
+      image: this.toAbsoluteUrl(
+        this.getMeta(html, "og:image") ||
+          this.getMeta(html, "twitter:image"),
+        url
+      ),
       siteName: this.getMeta(html, "og:site_name"),
     };
 
@@ -198,7 +294,10 @@ export default class LinkPreviewPlugin extends Plugin {
     return textarea.value;
   }
 
-  private toAbsoluteUrl(value: string | undefined, baseUrl: string): string | undefined {
+  private toAbsoluteUrl(
+    value: string | undefined,
+    baseUrl: string
+  ): string | undefined {
     if (!value) return undefined;
 
     try {
