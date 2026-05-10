@@ -6,7 +6,7 @@ I will for sure add edit mode support and a less manual way to add the links in 
 
 #### How To Use:
 
-Just create a codeblock like this:
+Just create a codeblock with "link-preview" as identifier and add the link inside the codeblock. that´s it. Here is an example:
 
 <img width="540" alt="example codeblock" src="readme-src/Screenshot 2026-05-10 1122289.png">
 
