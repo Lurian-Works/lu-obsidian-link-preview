@@ -21,7 +21,7 @@ export default class LinkPreviewPlugin extends Plugin {
         if (!url || !/^https?:\/\//i.test(url)) {
           el.createEl("div", {
             text: "Invalid link-preview URL.",
-            cls: "lp-error",
+            cls: "lu-lp-error",
           });
           return;
         }
@@ -29,7 +29,7 @@ export default class LinkPreviewPlugin extends Plugin {
         el.empty();
         el.createEl("div", {
           text: "Loading preview...",
-          cls: "lp-loading",
+          cls: "lu-lp-loading",
         });
 
         try {
@@ -40,7 +40,7 @@ export default class LinkPreviewPlugin extends Plugin {
           el.empty();
           el.createEl("div", {
             text: "Could not load link preview.",
-            cls: "lp-error",
+            cls: "lu-lp-error",
           });
           console.error("Link preview failed:", error);
         }
@@ -119,7 +119,7 @@ export default class LinkPreviewPlugin extends Plugin {
 
   private renderCard(el: HTMLElement, data: OgData) {
     const card = el.createEl("a", {
-      cls: "lp-card",
+      cls: "lu-lp-card",
       attr: {
         href: data.url,
         target: "_blank",
@@ -129,7 +129,7 @@ export default class LinkPreviewPlugin extends Plugin {
 
     if (data.image) {
       card.createEl("img", {
-        cls: "lp-image",
+        cls: "lu-lp-image",
         attr: {
           src: data.image,
           alt: "",
@@ -138,24 +138,24 @@ export default class LinkPreviewPlugin extends Plugin {
     }
 
     const content = card.createEl("div", {
-      cls: "lp-content",
+      cls: "lu-lp-content",
     });
 
     content.createEl("div", {
       text: data.title || data.url,
-      cls: "lp-title",
+      cls: "lu-lp-title",
     });
 
     if (data.description) {
       content.createEl("div", {
         text: data.description,
-        cls: "lp-description",
+        cls: "lu-lp-description",
       });
     }
 
     content.createEl("div", {
       text: data.siteName || new URL(data.url).hostname,
-      cls: "lp-site",
+      cls: "lu-lp-site",
     });
   }
 

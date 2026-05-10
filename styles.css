@@ -1,4 +1,4 @@
-.lp-card {
+.lu-lp-card {
   display: flex;
   gap: 1rem;
   overflow: hidden;
@@ -10,43 +10,43 @@
   text-decoration: none;
 }
 
-.lp-card:hover {
+.lu-lp-card:hover {
   background: var(--background-secondary-alt);
 }
 
-.lp-image {
+.lu-lp-image {
   width: 160px;
   min-width: 160px;
   object-fit: cover;
   background: var(--background-primary);
 }
 
-.lp-content {
+.lu-lp-content {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   padding: 1rem;
 }
 
-.lp-title {
+.lu-lp-title {
   font-weight: 700;
   color: var(--text-normal);
 }
 
-.lp-description {
+.lu-lp-description {
   color: var(--text-muted);
   font-size: 0.9em;
   line-height: 1.4;
 }
 
-.lp-site {
+.lu-lp-site {
   margin-top: auto;
   color: var(--text-faint);
   font-size: 0.8em;
 }
 
-.lp-loading,
-.lp-error {
+.lu-lp-loading,
+.lu-lp-error {
   padding: 0.75rem 1rem;
   border-radius: 10px;
   background: var(--background-secondary);

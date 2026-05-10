@@ -37,14 +37,14 @@ var LinkPreviewPlugin = class extends import_obsidian.Plugin {
         if (!url || !/^https?:\/\//i.test(url)) {
           el.createEl("div", {
             text: "Invalid link-preview URL.",
-            cls: "lp-error"
+            cls: "lu-lp-error"
           });
           return;
         }
         el.empty();
         el.createEl("div", {
           text: "Loading preview...",
-          cls: "lp-loading"
+          cls: "lu-lp-loading"
         });
         try {
           const data = await this.getOpenGraphData(url);
@@ -54,7 +54,7 @@ var LinkPreviewPlugin = class extends import_obsidian.Plugin {
           el.empty();
           el.createEl("div", {
             text: "Could not load link preview.",
-            cls: "lp-error"
+            cls: "lu-lp-error"
           });
           console.error("Link preview failed:", error);
         }
@@ -116,7 +116,7 @@ ${url}
   }
   renderCard(el, data) {
     const card = el.createEl("a", {
-      cls: "lp-card",
+      cls: "lu-lp-card",
       attr: {
         href: data.url,
         target: "_blank",
@@ -125,7 +125,7 @@ ${url}
     });
     if (data.image) {
       card.createEl("img", {
-        cls: "lp-image",
+        cls: "lu-lp-image",
         attr: {
           src: data.image,
           alt: ""
@@ -133,21 +133,21 @@ ${url}
       });
     }
     const content = card.createEl("div", {
-      cls: "lp-content"
+      cls: "lu-lp-content"
     });
     content.createEl("div", {
       text: data.title || data.url,
-      cls: "lp-title"
+      cls: "lu-lp-title"
     });
     if (data.description) {
       content.createEl("div", {
         text: data.description,
-        cls: "lp-description"
+        cls: "lu-lp-description"
       });
     }
     content.createEl("div", {
       text: data.siteName || new URL(data.url).hostname,
-      cls: "lp-site"
+      cls: "lu-lp-site"
     });
   }
   getMeta(html, property) {
