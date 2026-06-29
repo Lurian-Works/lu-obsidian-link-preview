@@ -33,7 +33,7 @@ while www. isn`t necessary but supported in the link, https:// is always necessa
 
 ### 2. Manual 
 > create a codeblock with "link-preview" as identifier and add the plain link inside the codeblock.  
-> or of course craete a manual inline link preview with [(lu-link-prev: https://example.com)]  
+> or craete a manual inline link preview with [(lu-link-prev: https://example.com)]  
 > Here is an example of both options:
 >
 > <img width="320" alt="example codeblock" src="readme-src/Screenshot 2026-05-10 144145.png">
