@@ -1,6 +1,6 @@
 import z from "zod"
 
-export const URLSchema = z.httpUrl({ error: `invalid Url` })
+export const URLSchema = z.httpUrl()
 
 export const OgpDataSchema = z.object({
   url: z.string(),
