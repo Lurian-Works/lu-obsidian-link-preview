@@ -1,4 +1,4 @@
-.lu-lp-card {
+.lu-lc-card {
   display: flex;
   gap: 1rem;
   overflow: hidden;
@@ -10,43 +10,43 @@
   text-decoration: none;
 }
 
-.lu-lp-card:hover {
+.lu-lc-card:hover {
   background: var(--background-secondary-alt);
 }
 
-.lu-lp-image {
+.lu-lc-image {
   width: 160px;
   min-width: 160px;
   object-fit: cover;
   background: var(--background-primary);
 }
 
-.lu-lp-content {
+.lu-lc-content {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   padding: 1rem;
 }
 
-.lu-lp-title {
+.lu-lc-title {
   font-weight: 700;
   color: var(--text-normal);
 }
 
-.lu-lp-description {
+.lu-lc-description {
   color: var(--text-muted);
   font-size: 0.9em;
   line-height: 1.4;
 }
 
-.lu-lp-site {
+.lu-lc-site {
   margin-top: auto;
   color: var(--text-faint);
   font-size: 0.8em;
 }
 
-.lu-lp-loading,
-.lu-lp-error {
+.lu-lc-loading,
+.lu-lc-error {
   padding: 0.75rem 1rem;
   border-radius: 10px;
   background: var(--background-secondary);

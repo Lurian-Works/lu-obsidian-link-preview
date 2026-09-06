@@ -1,13 +1,27 @@
 {
-  "compilerOptions": {
+   "compilerOptions": {
     "target": "es2022",
     "lib": ["DOM", "ES2022"],
     "module": "esnext",
     "moduleResolution": "bundler",
+    "resolvePackageJsonExports": true,
+    "resolvePackageJsonImports": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": false,
+    "customConditions": [],
+    "preserveSymlinks": false,
+    "noEmit": true,
     "strict": true,
+    "types": ["node"],
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "outDir": "dist"
+    "verbatimModuleSyntax": true,
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "outDir": "dist",
+    "noUncheckedIndexedAccess": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": ["**/*.ts"]
 }

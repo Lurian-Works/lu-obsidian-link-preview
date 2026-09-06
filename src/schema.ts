@@ -1,6 +1,18 @@
 import z from "zod"
 
-export const URLSchema = z.httpUrl()
+/**
+ * supports all types of urls including file url and uri
+ */
+export const URLSchema = z.url()
+export type UrlString = z.infer<typeof URLSchema>
+
+export const WebURLSchema = z.httpUrl()
+export type WebUrl = z.infer<typeof WebURLSchema>
+
+export const FileUrlSchema = z
+  .url()
+  .refine(url => new URL(url).protocol === "file:", "not a valid file URL")
+export type FileUrl = z.infer<typeof FileUrlSchema>
 
 export const OgpDataSchema = z.object({
   url: z.string(),
@@ -28,13 +40,13 @@ export const HexColorSchema = z
 /**
  * title, description and color will overwrite the global settings or OGP Data
  */
-const LinkInputObjectSchema = z.object({
+const LinkObjectSchema = z.object({
   path: z.string(),
   description: z.string().optional(),
   title: z.string().optional(),
   color: z.string().optional(),
 })
-type LinkInputObject = z.infer<typeof LinkInputObjectSchema>
+type LinkInputObject = z.infer<typeof LinkObjectSchema>
 
 const RenderOptionsSchema = z.object({
   layout: z.enum(["row", "quad"]).optional(),
@@ -46,7 +58,7 @@ type renderLinkBlock = (
   options?: z.infer<typeof RenderOptionsSchema>,
 ) => HTMLDivElement
 
-const LinkSettingsSchema = z.object({
+const LinkCardSettingSchema = z.object({
   allowOutsideVault: z.boolean(),
   // deactivate all js styling and fall back to css in order to make styling completely css dependent
   cssMode: z.boolean(),
@@ -70,3 +82,5 @@ const LinkSettingsSchema = z.object({
     file: HexColorSchema,
   }),
 })
+
+export type LinkCardSettings = z.infer<typeof LinkCardSettingSchema>

@@ -1,6 +1,6 @@
 import { requestUrl } from "obsidian"
-import { getHtmlMeta, getHtmlTitle, toAbsoluteUrl } from "./helper"
-import { OgpData } from "./schema"
+import type { OgpData } from "./schema"
+import { getHtmlMeta, getHtmlTitle, toAbsoluteUrl } from "./utils/helper"
 
 export class DataManager {
   private cache = new Map<string, OgpData>()

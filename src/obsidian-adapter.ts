@@ -1,7 +1,7 @@
 import { Notice } from "obsidian"
-import { extractUrl, isValidUrl } from "./helper"
 import type LuLinkPreviewPlugin from "./main"
-import type { LinkCardFactory } from "./presentation"
+import { errorEl, type LinkCardFactory } from "./presentation"
+import { extractUrl, isWebUrl } from "./utils/helper"
 
 export class ObsidianAdapter {
   constructor(
@@ -14,30 +14,31 @@ export class ObsidianAdapter {
       async (source, el) => {
         const url = source.trim()
 
-        if (!isValidUrl(url)) {
-          this.cardFactory.renderError(el, "Invalid link-preview URL.")
+        if (!isWebUrl(url)) {
+          el.appendChild(errorEl("Invalid link-preview URL."))
           return
         }
 
-        await this.cardFactory.renderPreview(el, url)
+        await this.cardFactory.renderLinkCard(el, url)
       },
     )
   }
 
   registerInlinePreview() {
     this.plugin.registerMarkdownPostProcessor(element => {
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
-
-      const textNodes: Text[] = []
-
-      while (walker.nextNode()) {
-        textNodes.push(walker.currentNode as Text)
-      }
-
-      for (const node of textNodes) {
-        this.cardFactory.replaceInlinePreviewSyntax(node)
+      for (const node of this.findInlineCardIdentifier(element)) {
+        this.renderInlineCard(node)
       }
     })
+  }
+
+  findInlineCardIdentifier(element: HTMLElement) {
+    const textNodes: Text[] = []
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+    while (walker.nextNode()) {
+      textNodes.push(walker.currentNode as Text)
+    }
+    return textNodes
   }
 
   registerCommands() {
@@ -46,22 +47,19 @@ export class ObsidianAdapter {
       name: "LuLink: to link block",
       editorCallback: editor => {
         const selectedText = editor.getSelection().trim()
-
         if (!selectedText) {
           new Notice("Select a link first.")
           return
         }
-
         const url = extractUrl(selectedText)
-
         if (!url) {
           new Notice("Selected text does not contain a valid URL.")
           return
         }
-
         editor.replaceSelection(`\`\`\`link-preview\n${url}\n\`\`\``)
       },
     })
+
     this.plugin.addCommand({
       id: "convert-to-inline-link-card",
       name: "LuLink: to inline link card",
@@ -83,5 +81,42 @@ export class ObsidianAdapter {
         editor.replaceSelection(`[(lu-link-prev: ${url})]`)
       },
     })
+  }
+  async renderInlineCard(node: Text) {
+    const text = node.nodeValue
+    if (!text) return
+
+    const regex = /\[\(lu-link-prev:\s*(https?:\/\/[^\s)]+)\s*\)\]/gi
+    const matches = [...text.matchAll(regex)]
+
+    if (!matches.length) return
+
+    const fragment = document.createDocumentFragment()
+    let lastIndex = 0
+
+    for (const match of matches) {
+      const fullMatch = match[0]
+      const url = match[1]
+      const start = match.index ?? 0
+
+      if (url) {
+        const before = text.slice(lastIndex, start)
+        if (before) {
+          fragment.appendChild(document.createTextNode(before))
+        }
+        const container = createEl("span")
+        container.classList.add("lu-lc-inline-container")
+
+        fragment.appendChild(container)
+        await this.cardFactory.renderLinkCard(container, url)
+
+        lastIndex = start + fullMatch.length
+      }
+    }
+    const after = text.slice(lastIndex)
+    if (after) {
+      fragment.appendChild(document.createTextNode(after))
+    }
+    node.parentNode?.replaceChild(fragment, node)
   }
 }

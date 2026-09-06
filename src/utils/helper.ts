@@ -1,10 +1,4 @@
-import { URLSchema } from "./schema"
-
-export function decodeHtml(value: string): string {
-  const textarea = document.createElement("textarea")
-  textarea.innerHTML = value
-  return textarea.value
-}
+import { WebURLSchema } from "../schema"
 
 export function extractUrl(value: string): string | null {
   const markdownLinkMatch = value.match(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/i)
@@ -16,8 +10,8 @@ export function extractUrl(value: string): string | null {
   return null
 }
 
-export function isValidUrl(value: string): boolean {
-  if (URLSchema.safeParse(value).success) return true
+export function isWebUrl(value: string): boolean {
+  if (WebURLSchema.safeParse(value).success) return true
   return false
 }
 
@@ -32,6 +26,17 @@ export function toAbsoluteUrl(
   } catch {
     return undefined
   }
+}
+
+export function decodeHtml(value: string): string {
+  const textarea = document.createElement("textarea")
+  textarea.innerHTML = value
+  return textarea.value
+}
+
+export function getHtmlTitle(html: string): string | undefined {
+  const match = html.match(/<title[^>]*>(.*?)<\/title>/i)
+  return match?.[1] ? decodeHtml(match[1].trim()) : undefined
 }
 
 export function getHtmlMeta(
@@ -63,9 +68,4 @@ export function getHtmlMeta(
   }
 
   return undefined
-}
-
-export function getHtmlTitle(html: string): string | undefined {
-  const match = html.match(/<title[^>]*>(.*?)<\/title>/i)
-  return match?.[1] ? decodeHtml(match[1].trim()) : undefined
 }
