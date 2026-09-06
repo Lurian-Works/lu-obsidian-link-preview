@@ -1,0 +1,25 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+
+  "entryPoints": ["src/main.ts"],
+  "out": "docs/dev",
+  "exclude": ["./playground", "./scripts"],
+
+  "name": "Mycea Ui Lib",
+
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+
+  "categorizeByGroup": false,
+
+  "navigation": {
+    "includeGroups": true,
+    "includeCategories": true,
+    "includeFolders": true
+  },
+
+  "sort": ["kind", "instance-first", "alphabetical-ignoring-documents"],
+
+  "cleanOutputDir": true
+}

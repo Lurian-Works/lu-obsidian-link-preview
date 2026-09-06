@@ -17,7 +17,7 @@ var __copyProps = (to, from, except, desc) => {
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// main.ts
+// src/main.ts
 var main_exports = {};
 __export(main_exports, {
   default: () => LinkPreviewPlugin
@@ -25,10 +25,7 @@ __export(main_exports, {
 module.exports = __toCommonJS(main_exports);
 var import_obsidian = require("obsidian");
 var LinkPreviewPlugin = class extends import_obsidian.Plugin {
-  constructor() {
-    super(...arguments);
-    this.cache = /* @__PURE__ */ new Map();
-  }
+  cache = /* @__PURE__ */ new Map();
   async onload() {
     this.registerCodeBlockPreview();
     this.registerInlinePreview();
@@ -49,10 +46,7 @@ var LinkPreviewPlugin = class extends import_obsidian.Plugin {
   }
   registerInlinePreview() {
     this.registerMarkdownPostProcessor((element) => {
-      const walker = document.createTreeWalker(
-        element,
-        NodeFilter.SHOW_TEXT
-      );
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
       const textNodes = [];
       while (walker.nextNode()) {
         textNodes.push(walker.currentNode);

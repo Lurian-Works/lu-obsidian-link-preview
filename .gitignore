@@ -1,6 +1,10 @@
 node_modules/
 dist/
-
+playground/
+.code-workspace
+**/private**.*
+**/test*
+**/docs*
 # env files
 .env
 .env.*
