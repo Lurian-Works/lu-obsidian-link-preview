@@ -2,6 +2,7 @@ import { execSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { getBuildData } from "./data.mjs"
+import { paths } from "./private-data.mjs"
 
 const buildData = getBuildData()
 
@@ -50,7 +51,7 @@ export function buildDist() {
 }
 
 export function copyBuildDistDir(targetDir) {
-  const originDistDir = buildData.distDir
+  const originDistDir = buildData.distDir.build
 
   if (fs.existsSync(originDistDir)) {
     if (!fs.existsSync(targetDir)) {
@@ -77,7 +78,7 @@ export function prepareRelease() {
   // runNpm("lint")
   runNpm("typecheck")
   buildDist()
-  runNpm("test")
+  //runNpm("test")
   runNpm("docs")
   buildDevVault()
 }

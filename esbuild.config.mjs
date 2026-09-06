@@ -1,7 +1,5 @@
 import esbuild from "esbuild"
 
-const prod = process.argv.includes("--production")
-
 esbuild
   .build({
     entryPoints: ["src/main.ts"],
@@ -9,7 +7,7 @@ esbuild
     outfile: "main.js",
     external: ["obsidian"],
     format: "cjs",
-    sourcemap: !prod,
-    minify: prod,
+    sourcemap: true,
+    minify: true,
   })
   .catch(() => process.exit(1))

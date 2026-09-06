@@ -5,9 +5,8 @@ playground/
 **/private**.*
 **/test*
 **/docs*
-# env files
+main.js
+main.js.map
 .env
 .env.*
-
-# logs
 *.log
