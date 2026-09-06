@@ -7,10 +7,15 @@ Works great for me.
 
 <img width="540" alt="example preview" src="readme-src/Screenshot 2026-05-10 1122091.png">
 
+## How to Install:
+download lu-obsidian-link-preview.zip from the latest release  
+-> unzip it and move the inner folder to your obsidian vault in the .obsidian/plugins/ folder  
+-> enable it in the community plugin settings
+
 ## How To Use:
 there are two ways of creating a preview card
 
-#### 1. Command Palette
+### 1. Command Palette
 
 > <img width="540" alt="example codeblock" src="readme-src/Screenshot 2026-05-10 144227.png">
 >
@@ -26,9 +31,9 @@ you can select simple text links like https://example.com and also named links l
 while www. isn`t necessary but supported in the link, https:// is always necessary  
 
 
-#### 2. Manual 
+### 2. Manual 
 > create a codeblock with "link-preview" as identifier and add the plain link inside the codeblock.  
-> or of course craete a manual inline link preview with [(lu-link-prev: https://example.com)]  
+> or craete a manual inline link preview with [(lu-link-prev: https://example.com)]  
 > Here is an example of both options:
 >
 > <img width="320" alt="example codeblock" src="readme-src/Screenshot 2026-05-10 144145.png">
