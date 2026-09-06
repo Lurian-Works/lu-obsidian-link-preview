@@ -1,7 +1,8 @@
 node_modules/
+.code-workspace
+.vscode
 dist/
 playground/
-.code-workspace
 **/private**.*
 **/test*
 **/docs*

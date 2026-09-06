@@ -1,15 +1,8 @@
 import { Notice, Plugin, requestUrl } from "obsidian"
-
-type OgData = {
-  url: string
-  title?: string
-  description?: string
-  image?: string
-  siteName?: string
-}
+import type { OgpData } from "./schema"
 
 export default class LinkPreviewPlugin extends Plugin {
-  private cache = new Map<string, OgData>()
+  private cache = new Map<string, OgpData>()
 
   async onload() {
     this.registerCodeBlockPreview()
@@ -174,7 +167,7 @@ export default class LinkPreviewPlugin extends Plugin {
     return /^https?:\/\//i.test(value)
   }
 
-  private async getOpenGraphData(url: string): Promise<OgData> {
+  private async getOpenGraphData(url: string): Promise<OgpData> {
     const cached = this.cache.get(url)
     if (cached) return cached
 
@@ -188,7 +181,7 @@ export default class LinkPreviewPlugin extends Plugin {
 
     const html = response.text
 
-    const data: OgData = {
+    const data: OgpData = {
       url,
       title:
         this.getMeta(html, "og:title")
@@ -209,7 +202,7 @@ export default class LinkPreviewPlugin extends Plugin {
     return data
   }
 
-  private renderCard(el: HTMLElement, data: OgData) {
+  private renderCard(el: HTMLElement, data: OgpData) {
     const card = el.createEl("a", {
       cls: "lu-lp-card",
       attr: {
