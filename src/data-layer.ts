@@ -1,41 +1,33 @@
-import { requestUrl } from "obsidian"
-import type { OgpData } from "./schema"
-import { getHtmlMeta, getHtmlTitle, toAbsoluteUrl } from "./utils/helper"
+import type { LinkInputObject, OgpData } from "./schema"
+import { getOpenGraphData } from "./utils/helper"
+import { type PathUtils, pathHelper } from "./utils/path-helper"
 
 export class DataManager {
+  constructor(private readonly pathUtils: PathUtils) {}
+
   private cache = new Map<string, OgpData>()
-  async getOpenGraphData(url: string): Promise<OgpData> {
-    const cached = this.cache.get(url)
-    if (cached) return cached
 
-    const response = await requestUrl({
-      url,
-      method: "GET",
-      headers: {
-        "User-Agent": "Mozilla/5.0 Obsidian Link Preview Plugin",
-      },
-    })
-
-    const html = response.text
-
-    const data: OgpData = {
-      url,
-      title:
-        getHtmlMeta(html, "og:title")
-        || getHtmlMeta(html, "twitter:title")
-        || getHtmlTitle(html)
-        || url,
-      description:
-        getHtmlMeta(html, "og:description")
-        || getHtmlMeta(html, "twitter:description"),
-      image: toAbsoluteUrl(
-        getHtmlMeta(html, "og:image") || getHtmlMeta(html, "twitter:image"),
-        url,
-      ),
-      siteName: getHtmlMeta(html, "og:site_name"),
+  /**
+   * @param path file url/path or web url
+   */
+  async getPathData(path: string): Promise<LinkInputObject> {
+    const parsedPath = this.pathUtils.parseInputString(path)
+    if (parsedPath.type === "webUrl") {
+      const ogData = await getOpenGraphData(parsedPath.path)
+      return {
+        path: parsedPath.path,
+        title: ogData.title,
+        hostName: ogData.siteName,
+        description: ogData.description,
+        image: ogData.image,
+      }
+    } else {
+      const pathData = pathHelper.toObject(parsedPath.path)
+      return {
+        path: parsedPath.path,
+        title: pathData.name,
+        hostName: `local - ${pathData.base}`,
+      }
     }
-
-    this.cache.set(url, data)
-    return data
   }
 }

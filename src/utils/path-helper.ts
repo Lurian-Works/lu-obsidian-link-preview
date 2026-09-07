@@ -2,20 +2,29 @@ import { access, stat } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
+import z from "zod"
+import { FileUrlSchema, WebURLSchema } from "../schema"
 
 /**
  * Vault Path Representation:
  * - `/` as separator
  * - percent-encoded characters decoded
- * - inside vault: relative to vault root
+ * - inside vault: relative to vault root, without seperator at the start
  * - outside vault: absolute file path
  */
-export const vaultPathRepresentation = "Folder inside vault/file.md"
+export const VaultPathRepresentation = [
+  "Folder inside vault/file.md",
+  "C:/Folder outside vault/file.md",
+] as const
 
 type Platform = NodeJS.Platform
 
 const currentPlatform = os.platform()
 
+/**
+ * all input paths (except for pathHelper.normalize) are expected to be valid paths/path-sections, so dont forget to normalized or validate them
+ * output path are normalized
+ */
 export const pathHelper = {
   /**
    * unified representation:
@@ -28,7 +37,12 @@ export const pathHelper = {
    * ("My Folder") => "My Folder"
    */
   normalize(input: string): string {
-    return decodeURIComponent(input).replaceAll("\\", "/").replace(/\/+/g, "/")
+    return (
+      decodeURIComponent(input.trim())
+        .replaceAll("\\", "/")
+        // remove duplicates
+        .replace(/\/+/g, "/")
+    )
   },
 
   /**
@@ -55,8 +69,8 @@ export const pathHelper = {
     }
   },
 
-  toFileUrl(path: string): string {
-    return pathToFileURL(path).pathname
+  toFileUrl(path: string) {
+    return pathToFileURL(path)
   },
 
   fromFileUrl(url: string | URL) {
@@ -95,28 +109,29 @@ export const pathHelper = {
   /**
    * Convert a normalized path to the requested platform format.
    */
-  toPlatform(normalized: string, platform: Platform): string {
+  toPlatform(path: string, platform: Platform): string {
     if (platform === "win32") {
-      return normalized.replaceAll("/", "\\")
+      return path.replaceAll("/", "\\")
     }
-    return normalized
+    return path
   },
 }
 
+export const WikiLinkSchema = z.string().regex(/^\[\[[^|\]]+(?:\|[^\]]*)?\]\]$/)
+export const MarkdownLinkSchema = z.string().regex(/^\[[^\]]*\]\(([^)]+)\)$/)
+
 export const mdLink = {
   isWikiLink(value: string | undefined): boolean {
-    return /^\[\[[^|\]]+(?:\|[^\]]*)?\]\]$/.test(value ?? "")
+    return WikiLinkSchema.safeParse(value).success
   },
   isMarkdownLink(link: string | undefined): boolean {
-    return link?.match(/^\[[^\]]*\]\(([^)]+)\)$/) !== null
+    return MarkdownLinkSchema.safeParse(link).success
   },
   /**
    * works on wiki and markdown links
    */
   isLink(value: string) {
-    if (this.isMarkdownLink(value)) return true
-    if (this.isWikiLink(value)) return true
-    return false
+    return this.isMarkdownLink(value) || this.isWikiLink(value)
   },
 
   /**
@@ -137,10 +152,7 @@ export const mdLink = {
     return matches[0].match(/\[[^\]]*\]\(([^)]+)\)/)?.[1]
   },
   wikiLinkToPath(link: string) {
-    return link
-      .match(/^\[\[([^|\]]+)(?:\|[^\]]*)?\]\]$/)?.[1]
-      ?.trim()
-      .replace(/^(?:\.\.\/)+/, "")
+    return link.match(/^\[\[([^|\]]+)(?:\|[^\]]*)?\]\]$/)?.[1]?.trim()
   },
   /**
    * works on wiki and markdown links
@@ -148,12 +160,11 @@ export const mdLink = {
    * @returns a vault path
    */
   toPath(link: string): string {
-    if (!link) return link
     let result: string | undefined
     if (this.isWikiLink(link)) {
-      result = this.wikiLinkToPath(link.replace(/^(?:\.\.\/)+/, ""))
+      result = this.wikiLinkToPath(link)
     } else if (this.isMarkdownLink(link)) {
-      result = this.markdownLinkToPath(link.replace(/^(?:\.\.\/)+/, ""))
+      result = this.markdownLinkToPath(link)
     }
     if (result) {
       return result
@@ -168,7 +179,7 @@ export class PathUtils {
   ) {}
   /**
    * @param path - vault or absolute path
-   * @returns vault path representation
+   * @returns vault path {@link VaultPathRepresentation}
    * @example
    * ("C:/Users/User/My Plugin/npm data.ts") => "C:/Users/User/My Plugin/npm data.ts"
    * ("/Folder/npm data.ts") => "/Folder/npm data.ts"
@@ -217,11 +228,31 @@ export class PathUtils {
    */
   pathToLink(path: string, linkFormat?: "WikiLink" | "MarkdownLink") {
     this.defaultLinkFormat
-
     if (linkFormat === "MarkdownLink") {
       return this.pathToMarkdownLink(path)
     }
     return this.pathToWikiLink(path)
+  }
+
+  /**
+   * @param input vaultPath, absolutePath, fileUrl, webUrl or wiki/markdown-link containing one of those
+   * @returns vaulPathRepresentation or webUrl
+   */
+  parseInputString(input: string): {
+    path: string
+    type: "webUrl" | "localPath"
+  } {
+    const path = mdLink.isLink(input) ? mdLink.toPath(input) : input
+    const webUrl = WebURLSchema.safeParse(path)
+    if (webUrl.success) {
+      return { path: webUrl.data, type: "webUrl" }
+    }
+    const fileUrl = FileUrlSchema.safeParse(path)
+    const rawPath = fileUrl.success
+      ? pathHelper.fromFileUrl(fileUrl.data)
+      : path
+    const vaultFormat = this.toVaultPath(rawPath)
+    return { path: vaultFormat, type: "localPath" }
   }
 
   /**
@@ -238,7 +269,6 @@ export class PathUtils {
     let filePath = this.toFullPath(
       pathHelper.normalize(path.join(folder, `${baseName}${extension}`)),
     )
-
     while (await pathHelper.exists(filePath)) {
       filePath = pathHelper.normalize(
         path.join(folder, `${baseName} ${index}${extension}`),
