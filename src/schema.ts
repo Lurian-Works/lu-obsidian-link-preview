@@ -1,4 +1,4 @@
-import z, { string } from "zod"
+import z from "zod"
 
 /**
  * supports all types of urls including file url and uri
@@ -33,13 +33,14 @@ export const HexColorSchema = z
 
 /**
  * title, description and color will overwrite the global settings or OGP Data
+ * keys have to be lowerkase completely in order to simplify parsing raw text block inputs
  */
 export const LinkObjectSchema = z.object({
   path: z.string(),
   title: z.string().optional(),
   description: z.string().optional(),
   image: z.string().optional(),
-  hostName: z.string().optional(),
+  hostname: z.string().optional(),
 })
 export type LinkInputObject = z.infer<typeof LinkObjectSchema>
 
@@ -53,7 +54,9 @@ type renderLinkBlock = (
 ) => HTMLDivElement
 
 const LinkCardSettingSchema = z.object({
+  enableDevApi: z.boolean().optional(),
   allowOutsideVault: z.boolean(),
+  alwaysResolveVaultPathsToFile: z.boolean().optional(),
   // deactivate all js styling and fall back to css in order to make styling completely css dependent
   cssMode: z.boolean(),
   quads: z.object({

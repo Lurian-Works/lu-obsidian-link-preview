@@ -17,7 +17,7 @@ export class DataManager {
       return {
         path: parsedPath.path,
         title: ogData.title,
-        hostName: ogData.siteName,
+        hostname: ogData.siteName,
         description: ogData.description,
         image: ogData.image,
       }
@@ -26,7 +26,7 @@ export class DataManager {
       return {
         path: parsedPath.path,
         title: pathData.name,
-        hostName: `local - ${pathData.base}`,
+        hostname: `local - ${pathData.base}`,
       }
     }
   }
