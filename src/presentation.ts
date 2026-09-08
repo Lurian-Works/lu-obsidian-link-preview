@@ -1,9 +1,9 @@
-import type { DataManager } from "./data-layer"
+import type { LuLinkCardManager } from "./data-layer"
 import type { LinkCardSettings, OgpData } from "./schema"
 
 export class LinkCardFactory {
   constructor(
-    private readonly dataManager: DataManager,
+    private readonly dataManager: LuLinkCardManager,
     settings?: () => LinkCardSettings,
   ) {}
 
