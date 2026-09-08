@@ -43,7 +43,7 @@ export class ObsidianAdapter {
 
   registerCommands() {
     this.plugin.addCommand({
-      id: "convert-to-link-block",
+      id: "lu-link-convert-to-link-block",
       name: "LuLink: to link block",
       editorCallback: editor => {
         const selectedText = editor.getSelection().trim()
@@ -56,12 +56,12 @@ export class ObsidianAdapter {
           new Notice("Selected text does not contain a valid URL.")
           return
         }
-        editor.replaceSelection(`\`\`\`link-preview\n${url}\n\`\`\``)
+        editor.replaceSelection(`\`\`\`LuLink\n${url}\n\`\`\``)
       },
     })
 
     this.plugin.addCommand({
-      id: "convert-to-inline-link-card",
+      id: "lu-link-convert-to-inline-link-card",
       name: "LuLink: to inline link card",
       editorCallback: editor => {
         const selectedText = editor.getSelection().trim()
@@ -78,7 +78,7 @@ export class ObsidianAdapter {
           return
         }
 
-        editor.replaceSelection(`[(lu-link-prev: ${url})]`)
+        editor.replaceSelection(`[(LuLink: ${url})]`)
       },
     })
   }
@@ -86,7 +86,7 @@ export class ObsidianAdapter {
     const text = node.nodeValue
     if (!text) return
 
-    const regex = /\[\(lu-link-prev:\s*(https?:\/\/[^\s)]+)\s*\)\]/gi
+    const regex = /\[\(LuLink:\s*(https?:\/\/[^\s)]+)\s*\)\]/gi
     const matches = [...text.matchAll(regex)]
 
     if (!matches.length) return
