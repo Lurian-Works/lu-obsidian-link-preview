@@ -1,5 +1,7 @@
 import z from "zod"
 
+export type Platform = NodeJS.Platform
+
 /**
  * supports all types of urls including file url and uri
  */
@@ -48,7 +50,7 @@ export const RenderOptionsSchema = z.object({
   layout: z.enum(["row", "quad"]).optional(),
 })
 
-type renderLinkBlock = (
+export type renderLinkBlock = (
   items: LinkInputObject | string | (LinkInputObject | string)[],
   options?: z.infer<typeof RenderOptionsSchema>,
 ) => HTMLDivElement

@@ -38,4 +38,8 @@ export class OgpStore {
     if (data) this.ogpData.set(url, data)
     return data
   }
+  async clear() {
+    this.ogpData.clear()
+    await this.db.ogpData.clear()
+  }
 }

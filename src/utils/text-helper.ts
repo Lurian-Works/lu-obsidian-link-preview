@@ -6,6 +6,7 @@ export const textHelper = {
    */
   linesToArray(text: string) {
     const lines = text.split(/\r?\n/)
+    return lines
   },
 
   /**

@@ -1,9 +1,8 @@
 import { access, stat } from "node:fs/promises"
-import os from "node:os"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import z from "zod"
-import { FileUrlSchema, WebURLSchema } from "../schema"
+import { FileUrlSchema, type Platform, WebURLSchema } from "../schema"
 
 /**
  * Vault Path Representation:
@@ -16,10 +15,6 @@ export const VaultPathRepresentation = [
   "Folder inside vault/file.md",
   "C:/Folder outside vault/file.md",
 ] as const
-
-type Platform = NodeJS.Platform
-
-const currentPlatform = os.platform()
 
 /**
  * all input paths (except for pathHelper.normalize) are expected to be valid paths/path-sections, so dont forget to normalized or validate them
