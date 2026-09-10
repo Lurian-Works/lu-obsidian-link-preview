@@ -1,12 +1,15 @@
 import { Plugin } from "obsidian"
-import { PluginRoot } from "./composition"
+import { PluginComposition } from "./composition"
 
 export default class LuLinkPreviewPlugin extends Plugin {
   async onload() {
-    const modules = new PluginRoot(this)
-    modules.obsidianAdapter.registerCodeBlockPreview()
-    modules.obsidianAdapter.registerInlinePreview()
-    modules.obsidianAdapter.registerCommands()
-    console.log("Lu Link Preview: plugin loaded")
+    console.log(`LuLink: loading plugin...`)
+    try {
+      const LuLink = await new PluginComposition(this).init()
+
+      console.log("Lu Link Preview: plugin loaded")
+    } catch (e) {
+      throw new Error(`LuLink: failed loading plugin`, { cause: e })
+    }
   }
 }

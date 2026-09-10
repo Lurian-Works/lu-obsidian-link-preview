@@ -1,11 +1,16 @@
+import { error } from "node:console"
 import { type OgpData, WebURLSchema } from "../schema"
 
 export class LuLinkError extends Error {}
 
+export function luLinkMessage(message: string, showPopup?: boolean) {
+  console.log(`LuLink: ${message}`)
+}
+
 /**
  * extracts urls from any text that contains any
  */
-export function extractUrl(value: string): string[] | null {
+export function extractUrls(value: string): string[] | null {
   const markdownLinkMatch = value.match(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/i)
   if (markdownLinkMatch) return markdownLinkMatch
   return value.match(/https?:\/\/\S+/i)
@@ -98,4 +103,42 @@ export async function getOpenGraphData(url: string): Promise<OgpData> {
     siteName: getHtmlMeta(html, "og:site_name") || new URL(url).hostname,
   }
   return data
+}
+
+/**
+ * updates an nested object while only updating/adding whats defined in the update
+ * @example
+ * deepUpdate({num: 3, data: {path: "a", values: {val1: "a", val2: "a"}}} , {data: {values: {val2: "b"}}, info:"b"})
+ * => {num: 3, data: {path: "a", values: {val1: "a", val2: "b"}, info: "b"}}
+ */
+export function deepUpdate<
+  T extends Record<string, unknown>,
+  U extends Record<string, unknown>,
+>(target: T, update: U): T & U {
+  if (!isPlainObject(target) || !isPlainObject(update)) {
+    throw new Error(`not an object`)
+  }
+  const result: Record<string, unknown> = { ...target }
+  for (const key of Object.keys(update)) {
+    const value = update[key]
+    if (value === undefined) {
+      continue
+    }
+    const current = result[key]
+    if (isPlainObject(current) && isPlainObject(value)) {
+      result[key] = deepUpdate(current, value)
+    } else {
+      result[key] = value
+    }
+  }
+  return result as T & U
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === "object"
+    && value !== null
+    && !Array.isArray(value)
+    && Object.getPrototypeOf(value) === Object.prototype
+  )
 }

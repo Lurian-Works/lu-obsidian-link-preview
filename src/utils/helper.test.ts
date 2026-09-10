@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { InlineLinkParser } from "../link-text-parser"
+import { InlineLinkParser } from "../data-manager"
 
 const text = `bla ba:[(LuLink: [[User/My Plugin/npm data.ts]])] brum\n
 bla blaub / []() [(  LuLink: "[[ C:User/My Plugin/npm data.ts | bla ]]" , "{bla: {} }" ) ]([]

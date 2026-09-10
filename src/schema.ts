@@ -52,40 +52,6 @@ const LinkObjectSchema = LinkInputObjectSchema.required({
 })
 export type LinkObject = z.infer<typeof LinkObjectSchema>
 
-export const RenderOptionsSchema = z.object({
-  layout: z.enum(["row", "quad"]).optional(),
-})
-
-export type renderLinkBlock = (
-  items: LinkInputObject | string | (LinkInputObject | string)[],
-  options?: z.infer<typeof RenderOptionsSchema>,
-) => HTMLDivElement
-
-const LinkCardSettingSchema = z.object({
-  enableDevApi: z.boolean().optional(),
-  allowOutsideVault: z.boolean(),
-  alwaysResolveVaultPathsToFile: z.boolean().optional(),
-  // deactivate all js styling and fall back to css in order to make styling completely css dependent
-  cssMode: z.boolean(),
-  quads: z.object({
-    showImage: z.boolean(),
-    showDescription: z.enum(["all", "none", "link", "files"]),
-    showTitle: z.boolean(),
-  }),
-  rows: z.object({
-    showImage: z.boolean(),
-    showDescription: z.enum(["all", "none", "link", "files"]),
-    size: {
-      // size units are in em
-      maxHeight: z.number(),
-      maxWidth: z.number(),
-    },
-  }),
-  color: z.object({
-    link: HexColorSchema,
-    folder: HexColorSchema,
-    file: HexColorSchema,
-  }),
-})
-
-export type LinkCardSettings = z.infer<typeof LinkCardSettingSchema>
+export interface DvLink {
+  path: string
+}

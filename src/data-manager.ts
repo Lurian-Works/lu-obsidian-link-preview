@@ -15,7 +15,7 @@ export class DataManager {
       readonly pathUtils: PathUtils
       readonly ogpStore: OgpStore
       readonly blockParser: typeof linkBlockParser
-      readonly linkParser: InlineLinkParser
+      readonly inlineParser: InlineLinkParser
     },
   ) {}
 

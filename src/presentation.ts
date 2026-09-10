@@ -1,3 +1,4 @@
+import type { LinkCardSettings } from "./config/link-card-config"
 import type { LinkObject } from "./schema"
 
 export function errorEl(message: string) {
@@ -14,17 +15,35 @@ export function linkCardLoadingEl() {
   })
 }
 
+/**
+ * @param onClick if onClick is defined, automatic openniing via anchor and href is not applied
+ * without settings it falls back to a simple html anchor element with an href attribute
+ *
+ */
 export function linkCard(options: {
   data: LinkObject
-  onClick: (event: PointerEvent, path: string) => void | Promise<void>
-  showHost?: boolean
+  onClick?: (event: PointerEvent, path: string) => void | Promise<void>
+  settings?: LinkCardSettings
 }) {
-  const card = createEl("div", {
-    cls: "lu-lc-card",
-  })
-  card.addEventListener("click", e => {
-    options.onClick(e, options.data.path)
-  })
+  let card: HTMLElement
+  if (options.settings?.allowOutsideVault || onclick) {
+    card = createEl("div", {
+      cls: "lu-lc-card",
+    })
+    card.addEventListener("click", e => {
+      options.onClick?.(e, options.data.path)
+    })
+  } else {
+    card = createEl("a", {
+      cls: "lu-lc-card",
+      attr: {
+        href: options.data.path,
+        target: "_blank",
+        rel: "noopener noreferrer",
+      },
+    })
+  }
+
   if (options.data.image) {
     card.createEl("img", {
       cls: "lu-lc-image",
@@ -41,13 +60,17 @@ export function linkCard(options: {
     text: options.data.title,
     cls: "lu-lc-title",
   })
-  if (options.data.description) {
+
+  if (
+    options.data.description
+    && options.settings?.ui?.showDescription !== false
+  ) {
     content.createEl("div", {
       text: options.data.description,
       cls: "lu-lc-description",
     })
   }
-  if (options.showHost === true || options.showHost === undefined) {
+  if (options.settings?.ui?.showHost !== false) {
     content.createEl("div", {
       text: options.data.hostname,
       cls: "lu-lc-host",

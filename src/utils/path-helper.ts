@@ -2,7 +2,12 @@ import { access, stat } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import z from "zod"
-import { FileUrlSchema, type Platform, WebURLSchema } from "../schema"
+import {
+  type DvLink,
+  FileUrlSchema,
+  type Platform,
+  WebURLSchema,
+} from "../schema"
 import { LuLinkError } from "./helper"
 
 /**
@@ -149,10 +154,15 @@ export const mdLink = {
     if (matches.length > 1) {
       throw new LuLinkError("string contains multiple links")
     }
-    return matches[0].match(/\[[^\]]*\]\(([^)]+)\)/)?.[1]
+    const rawPath = matches[0].match(/\[[^\]]*\]\(([^)]+)\)/)?.[1]?.trim()
+
+    const fileUrl = FileUrlSchema.safeParse(rawPath)
+    return fileUrl.success ? pathHelper.fromFileUrl(fileUrl.data) : rawPath
   },
   wikiLinkToPath(link: string) {
-    return link.match(/^\[\[([^|\]]+)(?:\|[^\]]*)?\]\]$/)?.[1]?.trim()
+    const rawPath = link.match(/^\[\[([^|\]]+)(?:\|[^\]]*)?\]\]$/)?.[1]?.trim()
+    const fileUrl = FileUrlSchema.safeParse(rawPath)
+    return fileUrl.success ? pathHelper.fromFileUrl(fileUrl.data) : rawPath
   },
   /**
    * works on wiki and markdown links
@@ -357,11 +367,21 @@ export class PathUtils {
    * @param propVal can be a string path, string wikilink, string markdown link or a dataview link object
    * returns the value unchanged if its not a link-string or link-object
    */
-  resolveYamlPath(propVal: string | { path: string; [key: string]: unknown }) {
+  resolveYamlPath(propVal: string | DvLink) {
     if (typeof propVal === "object" && "path" in propVal) {
-      return this.toVaultPath(pathHelper.normalize(propVal.path))
+      const path = mdLink.isLink(propVal.path)
+        ? mdLink.toPath(propVal.path)
+        : FileUrlSchema.safeParse(propVal.path).success
+          ? pathHelper.fromFileUrl(propVal.path)
+          : propVal.path
+      return this.toVaultPath(path)
     }
-    return mdLink.isLink(propVal) ? mdLink.toPath(propVal) : propVal
+    const path = mdLink.isLink(propVal)
+      ? mdLink.toPath(propVal)
+      : FileUrlSchema.safeParse(propVal).success
+        ? pathHelper.fromFileUrl(propVal)
+        : propVal
+    return this.toVaultPath(path)
   }
 
   isVaultPath(inPath: string): boolean {

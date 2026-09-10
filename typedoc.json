@@ -1,15 +1,15 @@
 {
   "$schema": "https://typedoc.org/schema.json",
 
-  "entryPoints": ["src/main.ts"],
+  "entryPoints": ["src"],
   "out": "docs/dev",
   "exclude": ["./playground", "./scripts"],
 
   "name": "Mycea Ui Lib",
-
-  "excludePrivate": true,
-  "excludeProtected": true,
-  "excludeInternal": true,
+  "entryPointStrategy": "expand",
+  "excludePrivate": false,
+  "excludeProtected": false,
+  "excludeInternal": false,
 
   "categorizeByGroup": false,
 

@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process"
-import type { ElectronShell } from "./electron-adapter"
-import type { ObsidianAdapter } from "./obsidian-adapter"
+import type { ElectronShell } from "./environment/electron-adapter"
+import type { ObsidianAdapter } from "./environment/obsidian-adapter"
 import { WebURLSchema } from "./schema"
 import { type PathUtils, pathHelper } from "./utils/path-helper"
 
