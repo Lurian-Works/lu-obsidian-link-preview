@@ -1,25 +1,4 @@
-import type { LuLinkCardManager } from "./data-layer"
-import type { LinkCardSettings, OgpData } from "./schema"
-
-export class LinkCardFactory {
-  constructor(
-    private readonly dataManager: LuLinkCardManager,
-    settings?: () => LinkCardSettings,
-  ) {}
-
-  async renderLinkCard(wrapper: HTMLElement, url: string) {
-    wrapper.empty()
-    wrapper.appendChild(linkCardLoadingEl())
-    try {
-      const data = await this.dataManager.getOpenGraphData(url)
-      wrapper.empty()
-      wrapper.appendChild(linkCard(data))
-    } catch (error) {
-      wrapper.appendChild(errorEl("Could not load link preview."))
-      console.error("Link preview failed:", error)
-    }
-  }
-}
+import type { LinkObject } from "./schema"
 
 export function errorEl(message: string) {
   return createEl("div", {
@@ -28,97 +7,52 @@ export function errorEl(message: string) {
   })
 }
 
-function linkCardLoadingEl() {
+export function linkCardLoadingEl() {
   return createEl("div", {
     text: "Loading preview...",
     cls: "lu-lc-loading",
   })
 }
 
-function linkCard(data: OgpData) {
-  const card = createEl("a", {
+export function linkCard(options: {
+  data: LinkObject
+  onClick: (event: PointerEvent, path: string) => void | Promise<void>
+  showHost?: boolean
+}) {
+  const card = createEl("div", {
     cls: "lu-lc-card",
-    attr: {
-      href: data.url,
-      target: "_blank",
-      rel: "noopener noreferrer",
-    },
   })
-
-  if (data.image) {
+  card.addEventListener("click", e => {
+    options.onClick(e, options.data.path)
+  })
+  if (options.data.image) {
     card.createEl("img", {
       cls: "lu-lc-image",
       attr: {
-        src: data.image,
+        src: options.data.image,
         alt: "",
       },
     })
   }
-
   const content = card.createEl("div", {
     cls: "lu-lc-content",
   })
-
   content.createEl("div", {
-    text: data.title || data.url,
+    text: options.data.title,
     cls: "lu-lc-title",
   })
-
-  if (data.description) {
+  if (options.data.description) {
     content.createEl("div", {
-      text: data.description,
+      text: options.data.description,
       cls: "lu-lc-description",
     })
   }
-
-  content.createEl("div", {
-    text: data.siteName || new URL(data.url).hostname,
-    cls: "lu-lc-site",
-  })
-
-  return card
-}
-
-function fileCard(data: OgpData) {
-  const card = createEl("a", {
-    cls: "lu-lc-card",
-    attr: {
-      href: data.url,
-      target: "_blank",
-      rel: "noopener noreferrer",
-    },
-  })
-
-  if (data.image) {
-    card.createEl("img", {
-      cls: "lu-lc-image",
-      attr: {
-        src: data.image,
-        alt: "",
-      },
-    })
-  }
-
-  const content = card.createEl("div", {
-    cls: "lu-lc-content",
-  })
-
-  content.createEl("div", {
-    text: data.title || data.url,
-    cls: "lu-lc-title",
-  })
-
-  if (data.description) {
+  if (options.showHost === true || options.showHost === undefined) {
     content.createEl("div", {
-      text: data.description,
-      cls: "lu-lc-description",
+      text: options.data.hostname,
+      cls: "lu-lc-host",
     })
   }
-
-  content.createEl("div", {
-    text: data.siteName || new URL(data.url).hostname,
-    cls: "lu-lc-site",
-  })
 
   return card
 }

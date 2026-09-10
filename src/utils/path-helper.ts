@@ -3,6 +3,7 @@ import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import z from "zod"
 import { FileUrlSchema, type Platform, WebURLSchema } from "../schema"
+import { LuLinkError } from "./helper"
 
 /**
  * Vault Path Representation:
@@ -146,7 +147,7 @@ export const mdLink = {
       return undefined
     }
     if (matches.length > 1) {
-      throw new Error("string contains multiple links")
+      throw new LuLinkError("string contains multiple links")
     }
     return matches[0].match(/\[[^\]]*\]\(([^)]+)\)/)?.[1]
   },
@@ -167,7 +168,70 @@ export const mdLink = {
     }
     if (result) {
       return result
-    } else throw new Error("no markdown- or wiki-link signature found")
+    } else throw new LuLinkError("no markdown- or wiki-link signature found")
+  },
+  parseMarkdownLink(link: string) {
+    try {
+      const matches = [...link.matchAll(/\[([^\]]*)\]\(([^)]+)\)/g)]
+      if (matches.length < 1)
+        throw new LuLinkError("no markdown- or wiki-link signature found")
+      if (matches.length > 1)
+        throw new LuLinkError("string contains multiple links")
+      const match = matches[0] as RegExpExecArray
+      const name = match[1]?.trim()
+      const path = match[2]?.trim()
+      if (!path) throw new LuLinkError(`no path detected`)
+      return {
+        named: name,
+        path: path,
+      }
+    } catch (e) {
+      throw new LuLinkError("failed parsing markdown-link", {
+        cause: e,
+      })
+    }
+  },
+  parseWikiLink(link: string) {
+    try {
+      const matches = [...link.matchAll(/\[\[([^|\]]*)(?:\|(.*)?)?\]\]/g)]
+      if (matches.length < 1)
+        throw new LuLinkError("no markdown- or wiki-link signature found")
+      if (matches.length > 1)
+        throw new LuLinkError("string contains multiple links")
+      const match = matches[0] as RegExpExecArray
+      const path = match[1]?.trim()
+      const name = match[2]?.trim()
+      if (!path) throw new LuLinkError(`no path detected`)
+      return {
+        named: name,
+        path: path,
+      }
+    } catch (e) {
+      throw new LuLinkError("failed parsing wikilink", {
+        cause: e,
+      })
+    }
+  },
+  parse(link: string) {
+    try {
+      const type = this.isWikiLink(link)
+        ? "wiki"
+        : this.isMarkdownLink(link)
+          ? "md"
+          : undefined
+      if (!type)
+        throw new LuLinkError("no markdown- or wiki-link signature found")
+      return {
+        path: this.toPath(link),
+        named:
+          type === "md"
+            ? this.parseMarkdownLink(link).named
+            : this.parseWikiLink(link).named,
+        type,
+      }
+    } catch (e) {
+      throw new LuLinkError(`failed parsing link`, { cause: e })
+    }
   },
 }
 
@@ -212,11 +276,11 @@ export class PathUtils {
     const file = pathHelper.toObject(this.toVaultPath(path))
     if (file.dir === "") {
       return file.ext === ""
-        ? `[${file.name}](${file.name}.md)`
+        ? `[${file.name}](${file.name})`
         : `[${file.name}](${file.name}${file.ext})`
     } else {
       return file.ext === ""
-        ? `[${file.name}](${file.dir}/${file.name}.md)`
+        ? `[${file.name}](${file.dir}/${file.name})`
         : `[${file.name}](${file.dir}/${file.name}${file.ext})`
     }
   }
@@ -239,19 +303,31 @@ export class PathUtils {
    */
   parseInputString(input: string): {
     path: string
+    named?: string
     type: "webUrl" | "localPath"
   } {
-    const path = mdLink.isLink(input) ? mdLink.toPath(input) : input
+    const isMdOrWiki = mdLink.isLink(input)
+    const parsedLink = isMdOrWiki ? mdLink.parse(input) : undefined
+
+    const path = parsedLink ? parsedLink.path : input
     const webUrl = WebURLSchema.safeParse(path)
     if (webUrl.success) {
-      return { path: webUrl.data, type: "webUrl" }
+      return {
+        path: webUrl.data,
+        type: "webUrl",
+        named: parsedLink ? parsedLink.named : undefined,
+      }
     }
     const fileUrl = FileUrlSchema.safeParse(path)
     const rawPath = fileUrl.success
       ? pathHelper.fromFileUrl(fileUrl.data)
       : path
     const vaultFormat = this.toVaultPath(rawPath)
-    return { path: vaultFormat, type: "localPath" }
+    return {
+      path: vaultFormat,
+      type: "localPath",
+      named: parsedLink ? parsedLink.named : undefined,
+    }
   }
 
   /**

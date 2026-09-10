@@ -1,9 +1,11 @@
-import { Editor, Notice } from "obsidian"
+import { App, Editor, Notice } from "obsidian"
+import type { DataManager } from "./data-manager"
 import type LuLinkPreviewPlugin from "./main"
-import { errorEl, type LinkCardFactory } from "./presentation"
+import { errorEl } from "./presentation"
+import { getTextNodes } from "./utils/dom-helper"
 import { extractUrl, isWebUrl } from "./utils/helper"
 
-export class ObsidianAdapter {
+export class ObsidianCardService {
   constructor(
     private readonly plugin: LuLinkPreviewPlugin,
     private readonly cardFactory: LinkCardFactory,
@@ -26,19 +28,10 @@ export class ObsidianAdapter {
 
   registerInlinePreview() {
     this.plugin.registerMarkdownPostProcessor(element => {
-      for (const node of this.getTextNodes(element)) {
+      for (const node of getTextNodes(element)) {
         this.renderInlineCard(node)
       }
     })
-  }
-
-  getTextNodes(element: HTMLElement) {
-    const textNodes: Text[] = []
-    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
-    while (walker.nextNode()) {
-      textNodes.push(walker.currentNode as Text)
-    }
-    return textNodes
   }
 
   registerCommands() {
@@ -120,9 +113,6 @@ export class ObsidianAdapter {
     }
     node.parentNode?.replaceChild(fragment, node)
   }
-}
-
-class ObsidianHelper {
   selectedUrlsToCards(editor: Editor) {
     const selectedText = editor.getSelection().trim()
     if (!selectedText) {
@@ -135,5 +125,12 @@ class ObsidianHelper {
       return
     }
     editor.replaceSelection(`\`\`\`LuLink\n${urls.join("\n")}\n\`\`\``)
+  }
+}
+
+export class ObsidianAdapter {
+  constructor(private readonly app: App) {}
+  openVaultPath(path: string, options?: { newTab?: boolean }) {
+    this.app.workspace.openLinkText(path, "", options?.newTab)
   }
 }

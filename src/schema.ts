@@ -37,14 +37,20 @@ export const HexColorSchema = z
  * title, description and color will overwrite the global settings or OGP Data
  * keys have to be lowerkase completely in order to simplify parsing raw text block inputs
  */
-export const LinkObjectSchema = z.object({
+export const LinkInputObjectSchema = z.object({
   path: z.string(),
   title: z.string().optional(),
   description: z.string().optional(),
   image: z.string().optional(),
   hostname: z.string().optional(),
 })
-export type LinkInputObject = z.infer<typeof LinkObjectSchema>
+export type LinkInputObject = z.infer<typeof LinkInputObjectSchema>
+
+const LinkObjectSchema = LinkInputObjectSchema.required({
+  title: true,
+  hostname: true,
+})
+export type LinkObject = z.infer<typeof LinkObjectSchema>
 
 export const RenderOptionsSchema = z.object({
   layout: z.enum(["row", "quad"]).optional(),

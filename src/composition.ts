@@ -1,7 +1,7 @@
 import os from "node:os"
-import { LuLinkCardManager } from "./data-layer"
+import { DataManager } from "./data-manager"
 import type LuLinkPreviewPlugin from "./main"
-import { ObsidianAdapter } from "./obsidian-adapter"
+import { ObsidianCardService } from "./obsidian-adapter"
 import { LinkCardFactory } from "./presentation"
 
 export class PluginRoot {
@@ -9,8 +9,8 @@ export class PluginRoot {
   obsidianAdapter
   constructor(plugin: LuLinkPreviewPlugin) {
     const currentPlatform = os.platform()
-    const dataManager = new LuLinkCardManager()
+    const dataManager = new DataManager()
     this.cardFactory = new LinkCardFactory(dataManager)
-    this.obsidianAdapter = new ObsidianAdapter(plugin, this.cardFactory)
+    this.obsidianAdapter = new ObsidianCardService(plugin, this.cardFactory)
   }
 }
