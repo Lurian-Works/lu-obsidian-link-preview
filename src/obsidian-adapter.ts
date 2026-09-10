@@ -1,4 +1,4 @@
-import { Notice } from "obsidian"
+import { Editor, Notice } from "obsidian"
 import type LuLinkPreviewPlugin from "./main"
 import { errorEl, type LinkCardFactory } from "./presentation"
 import { extractUrl, isWebUrl } from "./utils/helper"
@@ -7,10 +7,11 @@ export class ObsidianAdapter {
   constructor(
     private readonly plugin: LuLinkPreviewPlugin,
     private readonly cardFactory: LinkCardFactory,
+    private readonly codeBlockId: string,
   ) {}
   registerCodeBlockPreview() {
     this.plugin.registerMarkdownCodeBlockProcessor(
-      "link-preview",
+      this.codeBlockId,
       async (source, el) => {
         const url = source.trim()
 
@@ -18,7 +19,6 @@ export class ObsidianAdapter {
           el.appendChild(errorEl("Invalid link-preview URL."))
           return
         }
-
         await this.cardFactory.renderLinkCard(el, url)
       },
     )
@@ -26,13 +26,13 @@ export class ObsidianAdapter {
 
   registerInlinePreview() {
     this.plugin.registerMarkdownPostProcessor(element => {
-      for (const node of this.findInlineCardIdentifier(element)) {
+      for (const node of this.getTextNodes(element)) {
         this.renderInlineCard(node)
       }
     })
   }
 
-  findInlineCardIdentifier(element: HTMLElement) {
+  getTextNodes(element: HTMLElement) {
     const textNodes: Text[] = []
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
     while (walker.nextNode()) {
@@ -82,6 +82,7 @@ export class ObsidianAdapter {
       },
     })
   }
+
   async renderInlineCard(node: Text) {
     const text = node.nodeValue
     if (!text) return
@@ -118,5 +119,21 @@ export class ObsidianAdapter {
       fragment.appendChild(document.createTextNode(after))
     }
     node.parentNode?.replaceChild(fragment, node)
+  }
+}
+
+class ObsidianHelper {
+  selectedUrlsToCards(editor: Editor) {
+    const selectedText = editor.getSelection().trim()
+    if (!selectedText) {
+      new Notice("Nothing selected")
+      return
+    }
+    const urls = extractUrl(selectedText)
+    if (!urls) {
+      new Notice("Selected text does not contain a valid URL.")
+      return
+    }
+    editor.replaceSelection(`\`\`\`LuLink\n${urls.join("\n")}\n\`\`\``)
   }
 }

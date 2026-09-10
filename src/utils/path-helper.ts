@@ -129,6 +129,10 @@ export const mdLink = {
     return this.isMarkdownLink(value) || this.isWikiLink(value)
   },
 
+  extractWikilinks(text: string) {
+    return text.match(/\[[^\]]*\]/g)
+  },
+
   /**
    * @param markdownLink any string containing a valid markdown file link - if the string contains multiple links it will throw an error to prevent data loss. This does not prevent data loss from malformed links
    * @returns a string depending on the input -

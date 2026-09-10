@@ -2,6 +2,7 @@
   "name": "lu-obsidian-link-preview",
   "version": "1.0.0",
   "license": "GPL 3.0",
+  "type": "module",
   "scripts": {
     "build": "node esbuild.config.mjs",
     "build:dist": "node scripts/cli.mjs buildDist",

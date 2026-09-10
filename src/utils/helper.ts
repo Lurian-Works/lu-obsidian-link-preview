@@ -1,16 +1,14 @@
-import { requestUrl } from "obsidian"
 import { type OgpData, WebURLSchema } from "../schema"
 
 export class LuLinkError extends Error {}
 
-export function extractUrl(value: string): string | null {
+/**
+ * extracts urls from any text that contains any
+ */
+export function extractUrl(value: string): string[] | null {
   const markdownLinkMatch = value.match(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/i)
-  if (markdownLinkMatch?.[1]) return markdownLinkMatch[1]
-
-  const plainUrlMatch = value.match(/https?:\/\/\S+/i)
-  if (plainUrlMatch?.[0]) return plainUrlMatch[0]
-
-  return null
+  if (markdownLinkMatch) return markdownLinkMatch
+  return value.match(/https?:\/\/\S+/i)
 }
 
 export function isWebUrl(value: string): boolean {
@@ -74,14 +72,14 @@ export function getHtmlMeta(
 }
 
 export async function getOpenGraphData(url: string): Promise<OgpData> {
-  const response = await requestUrl({
-    url,
+  const response = await fetch(url, {
     method: "GET",
     headers: {
-      "User-Agent": "Mozilla/5.0 Obsidian Link Preview Plugin",
+      "User-Agent": "Mozilla/5.0 Obsidian LuLink Plugin",
     },
   })
-  const html = response.text
+
+  const html = await response.text()
 
   const data = {
     url,

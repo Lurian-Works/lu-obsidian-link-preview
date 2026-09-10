@@ -1,7 +1,7 @@
-import { type LinkInputObject, LinkObjectSchema, type OgpData } from "./schema"
-import { getOpenGraphData, LuLinkError } from "./utils/helper"
+import { type LinkInputObject, type OgpData } from "./schema"
+
+import { getOpenGraphData } from "./utils/helper"
 import { type PathUtils, pathHelper } from "./utils/path-helper"
-import { textHelper as txt } from "./utils/text-helper"
 
 interface ogpDataStore {
   add(ogpData: OgpData): void
@@ -12,10 +12,12 @@ export class LuLinkCardManager {
   constructor(
     private readonly pathUtils: PathUtils,
     private readonly ogpStore: ogpDataStore,
+    private readonly blockParser: LinkBlockParser,
+    private readonly inlineParser: inlineLinkParser,
   ) {}
-  async getBlockData(text: string): Promise<LinkInputObject[]> {
+  async parseBlockText(text: string): Promise<LinkInputObject[]> {
     const finalData: LinkInputObject[] = []
-    const inputs = DataParser.getTextBlockData(text)
+    const inputs = linkBlockParser.getData(text)
     inputs.forEach(async input => {
       const data = await this.getLinkData(input.path)
       const result: LinkInputObject = {
@@ -54,68 +56,4 @@ export class LuLinkCardManager {
       }
     }
   }
-}
-
-const DataParser = {
-  /**
-   * @param path file url/path or web url
-   */
-  /**
-   * return the input as structured object and validates the type
-   * does NOT do validation or normalization of paths or anything else
-   */
-  getTextBlockData(text: string) {
-    const validEntries: LinkInputObject[] = []
-    const errors: Error[] = []
-    try {
-      const tuples = txt.findKeyValuePairs(text)
-      const unqObjects = this.groupLinkOptions(tuples)
-      unqObjects.forEach(data => {
-        const parsed = LinkObjectSchema.safeParse(data)
-        if (parsed.success) {
-          validEntries.push()
-        } else {
-          errors.push(
-            new LuLinkError(`invalid parsed data`, {
-              cause: parsed.error,
-            }),
-          )
-        }
-      })
-
-      if (errors) {
-        console.error(
-          `failed parsing ${errors.length} of ${unqObjects.length} inputs.`,
-          ...errors,
-        )
-      }
-      return validEntries
-    } catch (e) {
-      throw new LuLinkError(`failed parsing text block input`, { cause: e })
-    }
-  },
-  groupLinkOptions(rawTuples: [string, string][]) {
-    let i = 0
-
-    const result: Record<string, string>[] = []
-
-    while (rawTuples[i]?.[0] === "path") {
-      const pathTuple = rawTuples[i]
-      const pathOptions: ([string, string] | undefined)[] = []
-      i++
-      while (rawTuples[i]?.[0] !== "path") {
-        pathOptions.push(rawTuples[i])
-        i++
-      }
-      if (pathTuple) {
-        result.push(
-          Object.fromEntries([
-            pathTuple,
-            ...pathOptions.filter(p => p !== undefined),
-          ]),
-        )
-      }
-    }
-    return result
-  },
 }
