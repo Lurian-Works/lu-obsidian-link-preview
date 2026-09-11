@@ -28,7 +28,7 @@ export function buildDist() {
   const includeFiles = [
     "main.js",
     "manifest.json",
-    path.join("src", "styles.css"),
+    "styles.css",
     "README.md",
     "LICENSE.md",
   ]
@@ -78,7 +78,7 @@ export function prepareRelease() {
   // runNpm("lint")
   runNpm("typecheck")
   buildDist()
-  //runNpm("test")
+  runNpm("test")
   runNpm("docs")
   buildDevVault()
 }
@@ -146,4 +146,14 @@ function bumpVersion(version, kind) {
     throw new Error(
       `invalid release kind - options are: ${releaseCommands.join(", ")}`,
     )
+}
+
+export function buildStyles() {
+  execSync("sass ./src/styles/main.scss ./styles.css")
+}
+
+export function watchStylesDevVault() {
+  execSync(
+    `sass --watch src/styles/main.scss:"${paths.devVault}/.obsidian/styles/lu-link-styles.css"`,
+  )
 }

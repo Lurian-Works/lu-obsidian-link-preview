@@ -7,6 +7,8 @@
     "build": "node esbuild.config.mjs",
     "build:dist": "node scripts/cli.mjs buildDist",
     "build:dev": "node scripts/cli.mjs buildDevVault",
+    "build:styles": "node scripts/cli.mjs buildStyles",
+    "watch:styles": "node scripts/cli.mjs watchStylesDevVault",
     "dev": "node esbuild.config.mjs --watch",
     "prepareRelease": "node scripts/cli.mjs prepareRelease",
     "release": "node scripts/cli.mjs makeRelease",
@@ -30,7 +32,8 @@
     "typedoc": "^0.28.20",
     "typescript": "^5.0.0",
     "vite": "^5.4.21",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "sass": "^1.104.0"
   },
   "dependencies": {
     "dexie": "^4.4.5",
