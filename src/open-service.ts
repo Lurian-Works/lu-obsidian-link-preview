@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process"
 import type { ElectronShell } from "./environment/electron-adapter"
 import type { ObsidianAdapter } from "./environment/obsidian-adapter"
-import { WebURLSchema } from "./schema"
+import { type Platform, WebURLSchema } from "./schema"
 import { type PathUtils, pathHelper } from "./utils/path-helper"
 
 type FsOpen =
@@ -20,6 +20,7 @@ export class OpenService {
       obsidian: ObsidianAdapter
       electron?: ElectronShell | null
       pathUtils: PathUtils
+      platform: Platform
     },
   ) {}
   /**
@@ -42,10 +43,17 @@ export class OpenService {
       this.openVaultPath(vaultPath, {
         newTab: newTab,
       })
-    } else if (await pathHelper.isExistingFolder(path)) {
-      this.openFolder(path)
-    } else if (pathHelper.isAbsolute(path)) {
-      await this.openLocalPath(path)
+    } else {
+      const parsedPath = pathHelper.toPlatform(
+        this.deps.pathUtils.toFullPath(path),
+        this.deps.platform,
+      )
+      console.log(parsedPath)
+      if (await pathHelper.isExistingFolder(parsedPath)) {
+        this.openFolder(parsedPath)
+      } else if (pathHelper.isAbsolute(parsedPath)) {
+        await this.openLocalPath(parsedPath)
+      }
     }
   }
 
@@ -64,6 +72,7 @@ export class OpenService {
     spawn(command, args, {
       detached: true,
       stdio: "ignore",
+      windowsHide: true,
     }).unref()
   }
 

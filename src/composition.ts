@@ -1,3 +1,4 @@
+import os from "node:os"
 import { requestUrl } from "obsidian"
 import { DevApi, PublicApi } from "./api"
 import { ConfigManager } from "./config/link-card-config"
@@ -37,7 +38,7 @@ export class PluginComposition {
 
   constructor(private readonly plugin: LuLinkPreviewPlugin) {}
   async init() {
-    //const currentPlatform = os.platform()
+    const currentPlatform = os.platform()
     const obsidian = new ObsidianAdapter(this.plugin.app)
     const electronAdapter = new ElectronAdapter()
 
@@ -68,6 +69,7 @@ export class PluginComposition {
             obsidian,
             electron: electronAdapter.getElectronShell(),
             pathUtils: this.pathUtils,
+            platform: currentPlatform,
           })
         : undefined
 

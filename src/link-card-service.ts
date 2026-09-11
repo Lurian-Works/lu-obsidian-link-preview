@@ -16,7 +16,9 @@ export class LinkCardService {
       readonly openService?: OpenService
       readonly settings: ConfigManager
     },
-  ) {}
+  ) {
+    this.handleClick = this.handleClick.bind(this)
+  }
   handleClick(event: PointerEvent, path: string) {
     if (event.button === 0) {
       this.deps.openService?.open(path)
@@ -116,7 +118,7 @@ export class LinkCardService {
             fragment.appendChild(document.createTextNode(before))
           }
           const v = this.deps.linkParser.getLinkValues(rawValue)
-          v.forEach(async inputLink => {
+          for (const inputLink of v) {
             const cardWrapper = createEl("div", { cls: "lu-lc-inline-wrapper" })
             fragment.appendChild(cardWrapper)
             try {
@@ -124,7 +126,7 @@ export class LinkCardService {
               cardWrapper.appendChild(
                 linkCard({
                   data,
-                  onClick: this.handleClick,
+                  onClick: this.deps.openService ? this.handleClick : undefined,
                   settings: this.deps.settings.data,
                 }),
               )
@@ -132,15 +134,14 @@ export class LinkCardService {
               cardWrapper.appendChild(errorEl(`LinkCard failed`))
               console.error(e)
             }
-
             lastIndex = startIndex + fullMatch.length
-          })
+          }
         }
-      } /*
+      }
       const after = text.slice(lastIndex)
       if (after) {
         fragment.appendChild(document.createTextNode(after))
-      }*/
+      }
       node.parentNode?.replaceChild(fragment, node)
     }
   }
