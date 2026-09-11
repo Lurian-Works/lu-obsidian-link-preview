@@ -26,7 +26,7 @@ export function linkCard(options: {
   settings?: LinkCardSettings
 }) {
   let card: HTMLElement
-  if (options.settings?.allowOutsideVault || onclick) {
+  if (options.settings?.allowOutsideVault === true && options.onClick) {
     card = createEl("div", {
       cls: "lu-lc-card",
     })

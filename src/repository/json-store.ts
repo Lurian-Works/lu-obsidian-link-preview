@@ -3,19 +3,23 @@ import { LuLinkError } from "../utils/helper"
 import { pathHelper } from "../utils/path-helper"
 
 export class JsonStore {
-  basePath
-  constructor(deps: {
-    storageRoot: string
-  }) {
-    this.basePath = `${deps.storageRoot}/json-store`
+  private constructor(public basePath: string) {}
+  static async init(storageRoot: string) {
+    const basePath = `${storageRoot}/json-store`
+    await fs.mkdir(basePath, { recursive: true })
+    return new JsonStore(basePath)
   }
 
   async get(
     id: string,
     reviver?: (this: unknown, key: string, value: unknown) => unknown,
   ) {
-    const raw = await fs.readFile(this.idToPath(id), "utf8")
-    return JSON.parse(raw, reviver)
+    const path = this.idToPath(id)
+    if (await pathHelper.exists(path)) {
+      const raw = await fs.readFile(path, "utf8")
+      return JSON.parse(raw, reviver)
+    }
+    return undefined
   }
 
   async save(id: string, data: unknown) {

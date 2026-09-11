@@ -47,15 +47,22 @@ export class ConfigManager {
   get data() {
     return { ...this.settingsData }
   }
+
   set data(settings: LinkCardSettings) {
     LinkCardSettingSchema.parse(settings)
     this.settingsData = settings
   }
+  /**
+   *
+   * @param settings a partial settings definition which will deep merge only the provided properties
+   * @example update({ui:{showHost: false}}) => `will just overwrite showHost and not the whole ui property`
+   */
   update(settings: LinkCardSettings) {
     LinkCardSettingSchema.parse(settings)
     this.settingsData = deepUpdate(this.settingsData, settings)
     this.save()
   }
+
   save() {
     try {
       if (!this.settingsData) return

@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url"
 import z from "zod"
 
 export type Platform = NodeJS.Platform
@@ -11,9 +12,17 @@ export type UrlString = z.infer<typeof URLSchema>
 export const WebURLSchema = z.httpUrl()
 export type WebUrl = z.infer<typeof WebURLSchema>
 
-export const FileUrlSchema = z
-  .url()
-  .refine(url => new URL(url).protocol === "file:", "not a valid file URL")
+export const FileUrlSchema = z.url().refine(url => {
+  if (!url.trim().startsWith("file:")) {
+    return false
+  }
+  try {
+    new URL(url)
+    return true
+  } catch {
+    return false
+  }
+}, "not a valid file URL")
 export type FileUrl = z.infer<typeof FileUrlSchema>
 
 export const OgpDataSchema = z.object({
@@ -46,7 +55,7 @@ export const LinkInputObjectSchema = z.object({
 })
 export type LinkInputObject = z.infer<typeof LinkInputObjectSchema>
 
-const LinkObjectSchema = LinkInputObjectSchema.required({
+export const LinkObjectSchema = LinkInputObjectSchema.required({
   title: true,
   hostname: true,
 })

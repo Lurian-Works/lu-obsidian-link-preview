@@ -7,6 +7,11 @@ export default class LuLinkPreviewPlugin extends Plugin {
     try {
       const LuLink = await new PluginComposition(this).init()
 
+      ;(window as any).luLink = {
+        api: LuLink.publicApi,
+        devApi: LuLink.devApi,
+      }
+
       console.log("Lu Link Preview: plugin loaded")
     } catch (e) {
       throw new Error(`LuLink: failed loading plugin`, { cause: e })

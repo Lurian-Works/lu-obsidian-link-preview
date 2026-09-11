@@ -2,7 +2,7 @@ import type { ConfigManager } from "./config/link-card-config"
 import type { DataManager, InlineLinkParser } from "./data-manager"
 import type { OpenService } from "./open-service"
 import { errorEl, linkCard } from "./presentation"
-import type { DvLink, LinkObject } from "./schema"
+import { type DvLink, type LinkInputObject, LinkObjectSchema } from "./schema"
 import { getTextNodes } from "./utils/dom-helper"
 import { LuLinkError } from "./utils/helper"
 import type { PathUtils } from "./utils/path-helper"
@@ -17,12 +17,12 @@ export class LinkCardService {
       readonly settings: ConfigManager
     },
   ) {}
-  private handleClick(event: PointerEvent, path: string) {
+  handleClick(event: PointerEvent, path: string) {
     if (event.button === 0) {
       this.deps.openService?.open(path)
     }
   }
-  async linkCard(input: LinkObject | string, inline?: boolean) {
+  async linkCard(input: LinkInputObject | string, inline?: boolean) {
     try {
       if (typeof input === "string") {
         const cardWrapper = createEl("div")
@@ -35,6 +35,7 @@ export class LinkCardService {
             linkCard({
               data,
               onClick: this.deps.openService ? this.handleClick : undefined,
+              settings: this.deps.settings.data,
             }),
           )
         } catch (e) {
@@ -43,8 +44,24 @@ export class LinkCardService {
         }
         return cardWrapper
       }
+      const parsedFull = LinkObjectSchema.safeParse(input)
+
+      if (parsedFull.success) {
+        return linkCard({
+          data: parsedFull.data,
+          onClick: this.deps.openService ? this.handleClick : undefined,
+          settings: this.deps.settings.data,
+        })
+      }
+      const data = await this.deps.dataManager.getLinkData(input.path)
       return linkCard({
-        data: input,
+        data: {
+          path: data.path,
+          hostname: input.hostname || data.hostname,
+          title: input.title || data.title,
+          description: input.description || data.description,
+          image: input.image || data.image,
+        },
         onClick: this.deps.openService ? this.handleClick : undefined,
         settings: this.deps.settings.data,
       })
@@ -78,7 +95,6 @@ export class LinkCardService {
    */
   async renderInlineLinks(element: HTMLElement) {
     const textNodes = getTextNodes(element)
-
     for (const node of textNodes) {
       const text = node.nodeValue
       if (!text) return
@@ -108,7 +124,8 @@ export class LinkCardService {
               cardWrapper.appendChild(
                 linkCard({
                   data,
-                  onClick: this.deps.openService ? this.handleClick : undefined,
+                  onClick: this.handleClick,
+                  settings: this.deps.settings.data,
                 }),
               )
             } catch (e) {
@@ -119,11 +136,11 @@ export class LinkCardService {
             lastIndex = startIndex + fullMatch.length
           })
         }
-      }
+      } /*
       const after = text.slice(lastIndex)
       if (after) {
         fragment.appendChild(document.createTextNode(after))
-      }
+      }*/
       node.parentNode?.replaceChild(fragment, node)
     }
   }

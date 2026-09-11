@@ -1,0 +1,24 @@
+{
+  "entryPoints": ["src"],
+  "entryPointStrategy": "expand",
+  "exclude": ["./playground", "./scripts"],
+
+  "name": "LuLink Dev Docs",
+
+  "plugin": ["@clean-jsdoc-theme/typedoc"],
+  "outputs": [
+    {
+      "name": "clean-jsdoc-theme",
+      "path": "docs/dev"
+    }
+  ],
+
+  "cleanJsdocTheme": {
+    "siteName": "LuLink Dev Docs",
+    "llmsTxt": true,
+    "docs": "./docs/dev",
+    "docGroups": ["Guides"],
+    "clubSidebarItems": false,
+    "copyPage": true
+  }
+}

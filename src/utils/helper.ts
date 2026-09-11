@@ -1,5 +1,4 @@
-import { error } from "node:console"
-import { type OgpData, WebURLSchema } from "../schema"
+import { WebURLSchema } from "../schema"
 
 export class LuLinkError extends Error {}
 
@@ -74,35 +73,6 @@ export function getHtmlMeta(
   }
 
   return undefined
-}
-
-export async function getOpenGraphData(url: string): Promise<OgpData> {
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "User-Agent": "Mozilla/5.0 Obsidian LuLink Plugin",
-    },
-  })
-
-  const html = await response.text()
-
-  const data = {
-    url,
-    title:
-      getHtmlMeta(html, "og:title")
-      || getHtmlMeta(html, "twitter:title")
-      || getHtmlTitle(html)
-      || url,
-    description:
-      getHtmlMeta(html, "og:description")
-      || getHtmlMeta(html, "twitter:description"),
-    image: toAbsoluteUrl(
-      getHtmlMeta(html, "og:image") || getHtmlMeta(html, "twitter:image"),
-      url,
-    ),
-    siteName: getHtmlMeta(html, "og:site_name") || new URL(url).hostname,
-  }
-  return data
 }
 
 /**

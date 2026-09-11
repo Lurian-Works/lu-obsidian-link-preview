@@ -1,5 +1,6 @@
 import { expect, test } from "vitest"
 import { InlineLinkParser } from "../data-manager"
+import { FileUrlSchema } from "../schema"
 
 const text = `bla ba:[(LuLink: [[User/My Plugin/npm data.ts]])] brum\n
 bla blaub / []() [(  LuLink: "[[ C:User/My Plugin/npm data.ts | bla ]]" , "{bla: {} }" ) ]([]
@@ -28,4 +29,11 @@ test("getInlineLinkValues", () => {
       `{bla: {} }`,
     ])
   }
+})
+
+test("File Url Schema", () => {
+  const notFileUrl = "C://mein Ordner Ordner"
+  const fileUrl = "file:///C:mein Ordner Ordner"
+  expect(FileUrlSchema.safeParse(notFileUrl).success).toBe(false)
+  expect(FileUrlSchema.safeParse(fileUrl).success).toBe(true)
 })

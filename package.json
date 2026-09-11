@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node esbuild.config.mjs",
     "build:dist": "node scripts/cli.mjs buildDist",
-    "build:devVault": "node scripts/cli.mjs buildDevVault",
+    "build:dev": "node scripts/cli.mjs buildDevVault",
     "dev": "node esbuild.config.mjs --watch",
     "prepareRelease": "node scripts/cli.mjs prepareRelease",
     "release": "node scripts/cli.mjs makeRelease",
@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "docs": "typedoc",
+    "docs:dev": "typedoc --options typedoc-dev.json",
     "lint": "biome check --write",
     "preview": "vite",
     "play": "tsx playground/main-preview.ts"

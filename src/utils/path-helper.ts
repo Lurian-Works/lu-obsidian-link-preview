@@ -75,6 +75,7 @@ export const pathHelper = {
   },
 
   fromFileUrl(url: string | URL) {
+    console.log(url)
     return this.normalize(fileURLToPath(url))
   },
 
@@ -329,6 +330,7 @@ export class PathUtils {
       }
     }
     const fileUrl = FileUrlSchema.safeParse(path)
+    console.log(fileUrl)
     const rawPath = fileUrl.success
       ? pathHelper.fromFileUrl(fileUrl.data)
       : path
@@ -342,7 +344,7 @@ export class PathUtils {
 
   /**
    * @param extension default = ".md"
-   * @reaturns Full file path. Adds incremental suffix if filename already exists in folder.
+   * @returns Full file path. Adds incremental suffix if filename already exists in folder.
    */
   async getUniqueFilePath(
     folder: string,

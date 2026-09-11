@@ -1,10 +1,17 @@
+import type { RequestUrlParam, RequestUrlResponsePromise } from "obsidian"
 import type { OgpStore } from "./repository/indexed-db-store"
 import {
   type LinkInputObject,
   LinkInputObjectSchema,
   type LinkObject,
+  type OgpData,
 } from "./schema"
-import { getOpenGraphData, LuLinkError } from "./utils/helper"
+import {
+  getHtmlMeta,
+  getHtmlTitle,
+  LuLinkError,
+  toAbsoluteUrl,
+} from "./utils/helper"
 import { type PathUtils, pathHelper } from "./utils/path-helper"
 import type { RegexFlag } from "./utils/text-helper"
 import { textHelper as txt } from "./utils/text-helper"
@@ -16,6 +23,9 @@ export class DataManager {
       readonly ogpStore: OgpStore
       readonly blockParser: typeof linkBlockParser
       readonly inlineParser: InlineLinkParser
+      readonly requestUrl: (
+        request: string | RequestUrlParam,
+      ) => RequestUrlResponsePromise
     },
   ) {}
 
@@ -28,7 +38,7 @@ export class DataManager {
     const parsedPath = this.deps.pathUtils.parseInputString(path)
     if (parsedPath.type === "webUrl") {
       const stored = await this.deps.ogpStore.get(parsedPath.path)
-      const ogpData = stored || (await getOpenGraphData(parsedPath.path))
+      const ogpData = stored || (await this.getOpenGraphData(parsedPath.path))
       if (!stored) {
         this.deps.ogpStore.add(ogpData)
       }
@@ -68,6 +78,35 @@ export class DataManager {
       finalData.push(result)
     })
     return finalData
+  }
+  async getOpenGraphData(url: string): Promise<OgpData> {
+    const response = await this.deps.requestUrl({
+      url,
+      method: "GET",
+      headers: {
+        "User-Agent": "Mozilla/5.0 Obsidian LuLink Plugin",
+      },
+    })
+
+    const html = response.text
+
+    const data = {
+      url,
+      title:
+        getHtmlMeta(html, "og:title")
+        || getHtmlMeta(html, "twitter:title")
+        || getHtmlTitle(html)
+        || url,
+      description:
+        getHtmlMeta(html, "og:description")
+        || getHtmlMeta(html, "twitter:description"),
+      image: toAbsoluteUrl(
+        getHtmlMeta(html, "og:image") || getHtmlMeta(html, "twitter:image"),
+        url,
+      ),
+      siteName: getHtmlMeta(html, "og:site_name") || new URL(url).hostname,
+    }
+    return data
   }
 }
 

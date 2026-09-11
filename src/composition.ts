@@ -1,3 +1,5 @@
+import { requestUrl } from "obsidian"
+import { DevApi, PublicApi } from "./api"
 import { ConfigManager } from "./config/link-card-config"
 import { DataManager, InlineLinkParser, linkBlockParser } from "./data-manager"
 import { ElectronAdapter } from "./environment/electron-adapter"
@@ -10,7 +12,6 @@ import type LuLinkPreviewPlugin from "./main"
 import { OpenService } from "./open-service"
 import { LuLinkDb, OgpStore } from "./repository/indexed-db-store"
 import { JsonStore } from "./repository/json-store"
-import type { DvLink, LinkObject } from "./schema"
 import { PathUtils } from "./utils/path-helper"
 
 export class PathRoot {
@@ -32,6 +33,7 @@ export class PluginComposition {
   private config!: ConfigManager
   private openService?: OpenService
   private dataManager!: DataManager
+  private pathUtils!: PathUtils
 
   constructor(private readonly plugin: LuLinkPreviewPlugin) {}
   async init() {
@@ -45,31 +47,33 @@ export class PluginComposition {
     const db = new LuLinkDb()
     const ogpStore = new OgpStore(db)
 
-    const jsonStore = new JsonStore({ storageRoot: pathRoot.storageRoot })
+    const jsonStore = await JsonStore.init(pathRoot.storageRoot)
     this.config = await ConfigManager.init(jsonStore, `settings`)
 
-    const pathUtils = new PathUtils(obsidian.vaultRoot)
+    this.pathUtils = new PathUtils(obsidian.vaultRoot)
     const blockParser = linkBlockParser
     const inlineParser = new InlineLinkParser("LuLink")
 
     this.dataManager = new DataManager({
-      pathUtils,
+      pathUtils: this.pathUtils,
       ogpStore,
       blockParser,
       inlineParser: inlineParser,
+      requestUrl: requestUrl,
     })
 
-    this.openService = this.config.data.allowOutsideVault
-      ? new OpenService({
-          obsidian,
-          electron: electronAdapter.getElectronShell(),
-          pathUtils,
-        })
-      : undefined
+    this.openService =
+      this.config.data.allowOutsideVault === true
+        ? new OpenService({
+            obsidian,
+            electron: electronAdapter.getElectronShell(),
+            pathUtils: this.pathUtils,
+          })
+        : undefined
 
     const linkCardService = new LinkCardService({
       linkParser: inlineParser,
-      pathUtils,
+      pathUtils: this.pathUtils,
       dataManager: this.dataManager,
       openService: this.openService,
       settings: this.config,
@@ -81,20 +85,22 @@ export class PluginComposition {
     )
 
     this.publicApi = new PublicApi(linkCardService)
-    if (this.config.data.enableDevApi) this.enableDevApi()
+    if (this.config.data.enableDevApi) this.createDevApi()
 
     await this.registerCommands(obsidianCardLink)
 
     return this
   }
 
-  enableDevApi() {
+  createDevApi() {
     if (this.devApi) return
-    this.devApi = new DevApi(this.config, this.dataManager, this.openService)
-  }
-
-  disableDevApi() {
-    this.devApi = undefined
+    this.devApi = new DevApi(
+      this.config,
+      this.dataManager,
+      this.pathUtils,
+      this.openService,
+    )
+    this.devApi.activate()
   }
 
   async registerCommands(obsidianCardLink: ObsidianCardLink) {
@@ -106,27 +112,4 @@ export class PluginComposition {
       console.error(`LuLink: failed to register commands`, { cause: e })
     }
   }
-}
-
-export class PublicApi {
-  linkCard: (path: string | LinkObject) => Promise<HTMLElement>
-  /**
-   * can return undefined if the yaml value is undefined
-   */
-  yamlCard: (
-    yamlValue: string | string[] | DvLink | DvLink[],
-  ) => Promise<HTMLElement | undefined>
-
-  constructor(cardService: LinkCardService) {
-    this.linkCard = cardService.linkCard
-    this.yamlCard = cardService.yamlValToCardblock
-  }
-}
-
-export class DevApi {
-  constructor(
-    public readonly config: ConfigManager,
-    public readonly parser: DataManager,
-    public readonly openService?: OpenService,
-  ) {}
 }
