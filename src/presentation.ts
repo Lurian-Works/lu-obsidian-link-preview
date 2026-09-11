@@ -45,12 +45,17 @@ export function linkCard(options: {
   }
 
   if (options.data.image) {
-    card.createEl("img", {
+    const imageEl = card.createEl("img", {
       cls: "lu-lc-image",
       attr: {
         src: options.data.image,
         alt: "",
       },
+    })
+    imageEl.addEventListener("click", e => {
+      if (e.button === 0) {
+        e.preventDefault()
+      }
     })
   }
   const content = card.createEl("div", {
