@@ -119,7 +119,8 @@ export class InlineLinkParser {
     return InlineLinkParser.findLinkSections(text, this.id)
   }
   getLinkValues(input: string) {
-    return InlineLinkParser.getLinkValues(input)
+    const rawValues = InlineLinkParser.getLinkValues(input)
+    return rawValues.map(v => InlineLinkParser.parseLinkValues(v))
   }
   /**
    *
@@ -142,28 +143,23 @@ export class InlineLinkParser {
    * @example (`"[[ C:User/My Plugin/npm data.ts | bla ]]" , "{bla: {} }"`) => [`[[ C:User/My Plugin/npm data.ts | bla ]]`, `{bla: {} }`]
    * opposite of string[].map(s => `"${s}"`).join(",")
    */
-  static getLinkValues(input: string): string[] {
-    const values: string[] = []
-    let current = ""
-    let inQuotes = false
+  static getLinkValues(input: string) {
+    const parsedValues = [...input.matchAll(/"\s([^|]*)\|?([^"]*)?"/g)]
+      .map(v => {
+        return {
+          path: v[1]?.trim(),
+          name: v[2]?.trim(),
+        }
+      })
+      .filter(v => Boolean(v.path))
+      .map(v => {
+        return { path: v.path, name: v.name ? v.name : undefined }
+      }) as {
+      path: string
+      name: string | undefined
+    }[]
 
-    for (const char of input) {
-      if (char === '"') {
-        inQuotes = !inQuotes
-        continue
-      }
-      if (char === "," && !inQuotes) {
-        values.push(current.trim())
-        current = ""
-        continue
-      }
-      current += char
-    }
-    if (current.trim()) {
-      values.push(current.trim())
-    }
-
-    return values
+    return parsedValues.filter(v => v.path !== undefined)
   }
 }
 

@@ -29,6 +29,7 @@ export function buildDist() {
     "main.js",
     "manifest.json",
     "styles.css",
+    "styles.css.map",
     "README.md",
     "LICENSE.md",
   ]
