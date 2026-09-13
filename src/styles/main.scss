@@ -15,9 +15,8 @@
 }
 
 .lu-block-wrapper {
-
 }
-
+/*
 .lu-lc-image {
   min-width: 128px;
   max-width: 200px;
@@ -57,13 +56,64 @@
   background: var(--background-secondary);
   color: var(--text-muted);
 }
+*/
 
+.lu-lc-image {
+  display: grid;
+  min-width: 100px;
+  max-width: 128px;
+  height: auto;
+  object-fit: cover;
+  background: var(--background-primary);
+}
+
+.lu-lc-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem;
+  height: fit-content;
+}
+
+.lu-lc-title {
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+.lu-lc-description {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.lu-lc-host {
+  margin-top: auto;
+  color: var(--text-faint);
+  font-size: 0.8em;
+}
+
+.lu-lc-loading,
+.lu-lc-error {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+}
 .lu-lc-inline-wrapper {
+  display: inline-flex;
+  width: fit-content;
+  margin: 0;
+  padding: 0;
+  margin-left: 0.25em;
+  margin-right: 0.25em;
+  align-items: flex-start;
+  justify-content: flex-start;
   .lu-lc-card {
+    margin: 0;
     gap: 0em;
     overflow: hidden;
-    margin: 0.5rem 0;
     max-height: 4em;
+    height: fit-content;
     max-width: 14em;
     overflow: hidden;
   }
@@ -77,12 +127,12 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-weight: 600;
+    font-weight: 400;
     font-size: 0.9em;
   }
   .lu-lc-image {
     min-width: unset;
-    width:64px;
+    width: 32px;
     object-fit: cover;
     background: var(--background-primary);
   }
@@ -90,14 +140,14 @@
     display: none;
   }
   .lu-lc-host {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
- 
+    display: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
-//icon only 
+//icon only
 
 /*
  .lu-lc-content{
