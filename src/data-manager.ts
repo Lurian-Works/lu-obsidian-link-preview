@@ -71,24 +71,25 @@ export class DataManager {
     gbdDebug(`input: ${text}`)
 
     const finalData: LinkObject[] = []
-    const inputs = this.deps.blockParser.getData(text)
+    const blockData = this.deps.blockParser.getData(text)
+    gbdDebug(`blockData: ${JSON.stringify(blockData)}`)
     let i = 0
-    inputs.forEach(async input => {
+    for (const inputObject of blockData) {
       i++
-      const data = await this.getLinkData(input.path)
+      const data = await this.getLinkData(inputObject.path)
       gbdDebug(`linkData${i}: ${finalData}`)
       const result = {
         path: data.path,
-        title: input.title || data.title,
-        description: input.description || data.description,
-        hostname: input.hostname || data.hostname,
-        image: input.image || data.image,
+        title: inputObject.title || data.title,
+        description: inputObject.description || data.description,
+        hostname: inputObject.hostname || data.hostname,
+        image: inputObject.image || data.image,
       }
-      gbdDebug(`result${i}: ${result}`)
+      gbdDebug(`result${i}: ${JSON.stringify(result)}`)
       finalData.push(result)
-    })
+    }
 
-    gbdDebug(`finalData: ${finalData}`)
+    gbdDebug(`finalData: ${JSON.stringify(finalData)}`)
 
     return finalData
   }
@@ -204,7 +205,7 @@ export const linkBlockParser = {
       const tuples = txt.findKeyValuePairs(text)
       fooDebug(`tuples: ${tuples}`)
       const unqObjects = this.groupLinkOptions(tuples)
-      fooDebug(`unqObjects: ${unqObjects}`)
+      fooDebug(`unqObjects: ${JSON.stringify(unqObjects)}`)
       unqObjects.forEach(data => {
         const parsed = LinkInputObjectSchema.safeParse(data)
         if (parsed.success) {
@@ -224,7 +225,7 @@ export const linkBlockParser = {
           ...errors,
         )
       }
-      fooDebug(`validEntries: ${validEntries}`)
+      fooDebug(`validEntries: ${JSON.stringify(validEntries)}`)
 
       return validEntries
     } catch (e) {
