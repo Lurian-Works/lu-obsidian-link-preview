@@ -3,18 +3,17 @@ import { requestUrl } from "obsidian"
 import { DevApi, PublicApi } from "./api"
 import { ConfigManager } from "./config/link-card-config"
 import { DataManager, InlineLinkParser, linkBlockParser } from "./data-manager"
-import {
-  ElectronAdapter,
-  FileSystemAdapter,
-} from "./environment/electron-adapter"
+import { ElectronAdapter, ElectronFs } from "./environment/electron-adapter"
 import {
   ObsidianAdapter,
   ObsidianCardLink,
 } from "./environment/obsidian-adapter"
+import { WindowsAdapter } from "./environment/windows-adapter"
+import { LuLinkFsAdapter } from "./filesystem/fs-adapter"
+import { OpenService } from "./filesystem/open-service"
 import { LinkCardService } from "./link-card-service"
 import type LuLinkPreviewPlugin from "./main"
-import { OpenService } from "./open-service"
-import { LuLinkDb, OgpStore } from "./repository/indexed-db-store"
+import { IconStore, LuLinkDb, OgpStore } from "./repository/indexed-db-store"
 import { JsonStore } from "./repository/json-store"
 import { PathUtils } from "./utils/path-helper"
 
@@ -44,30 +43,24 @@ export class PluginComposition {
     const currentPlatform = os.platform()
     const obsidian = new ObsidianAdapter(this.plugin.app)
     const electronAdapter = new ElectronAdapter()
+    const electronFsAdapter = new ElectronFs(electronAdapter.electron)
+    const windowsAdapter = new WindowsAdapter()
+
+    const luFs = new LuLinkFsAdapter({
+      platform: currentPlatform,
+      electronFs: electronFsAdapter,
+      windows: windowsAdapter,
+    })
 
     const pluginId = this.plugin.manifest.id
     const pathRoot = new PathRoot(obsidian.vaultRoot, pluginId)
 
     const db = new LuLinkDb()
-    const ogpStore = new OgpStore(db)
-
     const jsonStore = await JsonStore.init(pathRoot.storageRoot)
+    const ogpStore = new OgpStore(db)
+    const iconStore = new IconStore(db)
+
     this.config = await ConfigManager.init(jsonStore, `settings`)
-
-    this.pathUtils = new PathUtils(obsidian.vaultRoot)
-    const blockParser = linkBlockParser
-    const inlineParser = new InlineLinkParser("LuLink")
-
-    const electronFsAdapter = new FileSystemAdapter(electronAdapter.electron)
-
-    this.dataManager = new DataManager({
-      pathUtils: this.pathUtils,
-      ogpStore,
-      blockParser,
-      inlineParser: inlineParser,
-      electronFs: electronFsAdapter,
-      requestUrl: requestUrl,
-    })
 
     this.openService =
       this.config.data.allowOutsideVault === true
@@ -79,6 +72,20 @@ export class PluginComposition {
           })
         : undefined
 
+    this.pathUtils = new PathUtils(obsidian.vaultRoot)
+    const blockParser = linkBlockParser
+    const inlineParser = new InlineLinkParser("LuLink")
+
+    this.dataManager = new DataManager({
+      luFs,
+      ogpStore,
+      iconStore,
+      pathUtils: this.pathUtils,
+      blockParser,
+      inlineParser: inlineParser,
+      requestUrl: requestUrl,
+    })
+
     const linkCardService = new LinkCardService({
       linkParser: inlineParser,
       pathUtils: this.pathUtils,
@@ -86,6 +93,7 @@ export class PluginComposition {
       openService: this.openService,
       settings: this.config,
     })
+
     const obsidianCardLink = new ObsidianCardLink(
       this.plugin,
       linkCardService,

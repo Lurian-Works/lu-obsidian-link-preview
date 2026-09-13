@@ -1,8 +1,8 @@
 import createDebug from "debug"
 import type { ConfigManager } from "./config/link-card-config"
 import type { DataManager } from "./data-manager"
+import type { OpenService } from "./filesystem/open-service"
 import type { LinkCardService } from "./link-card-service"
-import type { OpenService } from "./open-service"
 import type { DvLink, LinkInputObject } from "./schema"
 import type { PathUtils } from "./utils/path-helper"
 

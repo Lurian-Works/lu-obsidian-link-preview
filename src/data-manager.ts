@@ -1,17 +1,19 @@
 import type { RequestUrlParam, RequestUrlResponsePromise } from "obsidian"
-import type { FileSystemAdapter } from "./environment/electron-adapter"
-import type { OgpStore } from "./repository/indexed-db-store"
+import type { ElectronFs } from "./environment/electron-adapter"
+import type { WindowsAdapter } from "./environment/windows-adapter"
+import type { LuLinkFsAdapter } from "./filesystem/fs-adapter"
+import { IconStore, type OgpStore } from "./repository/indexed-db-store"
 import {
   type LinkInputObject,
   LinkInputObjectSchema,
   type LinkObject,
   type OgpData,
 } from "./schema"
-import { luDebug } from "./utils/debug"
 import {
   getHtmlMeta,
   getHtmlTitle,
   LuLinkError,
+  luDebug,
   toAbsoluteUrl,
 } from "./utils/helper"
 import { type PathUtils, pathHelper } from "./utils/path-helper"
@@ -25,9 +27,10 @@ export class DataManager {
     private readonly deps: {
       readonly pathUtils: PathUtils
       readonly ogpStore: OgpStore
+      readonly iconStore: IconStore
       readonly blockParser: typeof linkBlockParser
       readonly inlineParser: InlineLinkParser
-      readonly electronFs: FileSystemAdapter
+      readonly luFs: LuLinkFsAdapter
       readonly requestUrl: (
         request: string | RequestUrlParam,
       ) => RequestUrlResponsePromise
@@ -40,7 +43,6 @@ export class DataManager {
    * @returns full LinkObjectData
    */
   async getLinkData(path: string): Promise<LinkObject> {
-    const fooDebug = dmDebug.extend("getLinkData")
     const parsedPath = this.deps.pathUtils.parseInputString(path)
     if (parsedPath.type === "webUrl") {
       const stored = await this.deps.ogpStore.get(parsedPath.path)
@@ -48,6 +50,7 @@ export class DataManager {
       if (!stored) {
         this.deps.ogpStore.add(ogpData)
       }
+
       return {
         path: parsedPath.path,
         title: parsedPath.named || ogpData.title,
@@ -57,13 +60,21 @@ export class DataManager {
       }
     } else {
       let image: string | undefined
-
-      try {
-        image = (await this.deps.electronFs.getFileIcon(path)).toDataURL()
-      } catch (e) {
-        fooDebug(`failed getting image from path, cause:`, e)
+      if (pathHelper.isAbsolute(path)) {
+        const cached = await this.deps.iconStore.get(path)
+        if (cached) {
+          image = URL.createObjectURL(cached.image)
+        } else {
+          try {
+            image = await this.deps.luFs.getFileIcon(path)
+          } catch {}
+          if (image) {
+            this.deps.iconStore.add({ path, imageUrl: image })
+          }
+        }
       }
       const pathData = pathHelper.toObject(parsedPath.path)
+
       return {
         path: parsedPath.path,
         title: parsedPath.named || pathData.name,

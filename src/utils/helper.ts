@@ -2,8 +2,10 @@ import { WebURLSchema } from "../schema"
 
 export class LuLinkError extends Error {}
 
-export function luLinkMessage(message: string, showPopup?: boolean) {
-  console.log(`LuLink: ${message}`)
+import createDebug from "debug"
+
+export function luDebug(namespace: string) {
+  return createDebug("LuLink").extend(namespace)
 }
 
 /**

@@ -80,7 +80,7 @@ export class ConfigManager {
   static async init(store: JsonStore, storageId: string) {
     const stored = await store.get(storageId)
     if (!stored) {
-      luLinkMessage(`No Config found - proceeded with default config`)
+      console.log(`No Config found - proceeded with default config`)
       const data = {}
       return new ConfigManager(store, storageId, data)
     }
@@ -90,7 +90,7 @@ export class ConfigManager {
       const data = parsed.data
       return new ConfigManager(store, storageId, data)
     }
-    luLinkMessage(`stored settings invalid`)
+    console.log(`stored settings invalid`)
     const data = {}
     return new ConfigManager(store, storageId, data)
   }

@@ -1,7 +1,6 @@
 export type ElectronRequire = NodeJS.Require
 
 export type ElectronModule = {
-  app: Electron.App
   shell: Electron.Shell
   nativeImage: typeof import("electron").nativeImage
 }
@@ -22,9 +21,12 @@ export class ElectronAdapter {
   }
 }
 
-export class FileSystemAdapter {
+export class ElectronFs {
   constructor(private readonly electron: ElectronModule) {}
-  async getFileIcon(
+  /**
+   * @platform darwin, win32
+   */
+  async createFileThumbnail(
     path: string,
     size?: {
       height: number

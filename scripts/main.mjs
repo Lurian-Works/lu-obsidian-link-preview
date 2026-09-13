@@ -155,6 +155,6 @@ export function buildStyles() {
 
 export function watchStylesDevVault() {
   execSync(
-    `sass --watch src/styles/main.scss:"${paths.devVault}/.obsidian/styles/lu-link-styles.css"`,
+    `sass --watch src/styles/main.scss:"${paths.devVault}/.obsidian/snippets/lu-link-styles.css"`,
   )
 }

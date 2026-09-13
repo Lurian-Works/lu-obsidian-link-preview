@@ -1,11 +1,10 @@
 import type { ConfigManager } from "./config/link-card-config"
 import type { DataManager, InlineLinkParser } from "./data-manager"
-import type { OpenService } from "./open-service"
+import type { OpenService } from "./filesystem/open-service"
 import { errorEl, linkCard } from "./presentation"
 import { type DvLink, type LinkInputObject, LinkObjectSchema } from "./schema"
-import { luDebug } from "./utils/debug"
 import { getTextNodes } from "./utils/dom-helper"
-import { LuLinkError } from "./utils/helper"
+import { LuLinkError, luDebug } from "./utils/helper"
 import type { PathUtils } from "./utils/path-helper"
 
 const lcsDebug = luDebug("LinkCardService")
