@@ -18,7 +18,7 @@
     "docs": "typedoc",
     "docs:dev": "typedoc --options typedoc-dev.json",
     "lint": "biome check --write",
-    "preview": "vite",
+    "prev": "vite",
     "play": "tsx playground/main-preview.ts"
   },
   "devDependencies": {
