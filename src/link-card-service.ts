@@ -3,9 +3,12 @@ import type { DataManager, InlineLinkParser } from "./data-manager"
 import type { OpenService } from "./open-service"
 import { errorEl, linkCard } from "./presentation"
 import { type DvLink, type LinkInputObject, LinkObjectSchema } from "./schema"
+import { luDebug } from "./utils/debug"
 import { getTextNodes } from "./utils/dom-helper"
 import { LuLinkError } from "./utils/helper"
 import type { PathUtils } from "./utils/path-helper"
+
+const lcsDebug = luDebug("LinkCardService")
 
 export class LinkCardService {
   constructor(
@@ -25,6 +28,8 @@ export class LinkCardService {
     }
   }
   async linkCard(input: LinkInputObject | string, inline?: boolean) {
+    const fooDebug = lcsDebug.extend(`linkCard`)
+    fooDebug(`input: ${input}`)
     try {
       if (typeof input === "string") {
         const cardWrapper = createEl("div")
@@ -47,6 +52,7 @@ export class LinkCardService {
         return cardWrapper
       }
       const parsedFull = LinkObjectSchema.safeParse(input)
+      fooDebug("parsedFull", parsedFull)
 
       if (parsedFull.success) {
         return linkCard({
@@ -56,6 +62,7 @@ export class LinkCardService {
         })
       }
       const data = await this.deps.dataManager.getLinkData(input.path)
+      fooDebug("data", data)
       return linkCard({
         data: {
           path: data.path,
@@ -96,21 +103,31 @@ export class LinkCardService {
    * @param element the element to serach in - can be any dom element
    */
   async renderInlineLinks(element: HTMLElement) {
+    const fooDebug = lcsDebug.extend("renderInlineLinks")
+    let i = 0
     const textNodes = getTextNodes(element)
     for (const node of textNodes) {
+      i++
       const text = node.nodeValue
-      if (!text) return
+      fooDebug(`TextNode${i}`, text)
+      if (!text) continue
 
       const linkSections = [...this.deps.linkParser.findLinkSections(text)]
-      if (!linkSections.length) return
+      if (!linkSections.length) continue
+
+      fooDebug(`linkSections${i}`, linkSections)
 
       const fragment = document.createDocumentFragment()
       let lastIndex = 0
 
+      let LinkMatchI = 0
       for (const linkMatch of linkSections) {
+        LinkMatchI++
         const fullMatch = linkMatch[0]
         const rawValue = linkMatch[1]
         const startIndex = linkMatch.index ?? 0
+
+        fooDebug(`linkMatch${LinkMatchI}`, linkMatch)
 
         if (rawValue) {
           const before = text.slice(lastIndex, startIndex)
@@ -118,14 +135,18 @@ export class LinkCardService {
             fragment.appendChild(document.createTextNode(before))
           }
           const v = this.deps.linkParser.getLinkValues(rawValue)
+          fooDebug(`v(linkValues)${LinkMatchI}`, v)
+
           for (const inputLink of v) {
             const cardWrapper = createEl("div", { cls: "lu-lc-inline-wrapper" })
             fragment.appendChild(cardWrapper)
             try {
-              const data = await this.deps.dataManager.getLinkData(inputLink)
+              const data = await this.deps.dataManager.getLinkData(
+                inputLink.path,
+              )
               cardWrapper.appendChild(
                 linkCard({
-                  data,
+                  data: { ...data, title: inputLink.name || data.title },
                   onClick: this.deps.openService ? this.handleClick : undefined,
                   settings: this.deps.settings.data,
                 }),
