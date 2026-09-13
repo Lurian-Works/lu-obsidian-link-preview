@@ -25,6 +25,7 @@
     "@biomejs/biome": "2.4.15",
     "@clean-jsdoc-theme/typedoc": "^5.2.0",
     "@types/node": "^25.8.0",
+    "electron": "^44.3.0",
     "esbuild": "^0.20.0",
     "obsidian": "latest",
     "sass": "^1.104.0",

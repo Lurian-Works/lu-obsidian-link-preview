@@ -1,4 +1,5 @@
 import type { RequestUrlParam, RequestUrlResponsePromise } from "obsidian"
+import type { FileSystemAdapter } from "./environment/electron-adapter"
 import type { OgpStore } from "./repository/indexed-db-store"
 import {
   type LinkInputObject,
@@ -26,6 +27,7 @@ export class DataManager {
       readonly ogpStore: OgpStore
       readonly blockParser: typeof linkBlockParser
       readonly inlineParser: InlineLinkParser
+      readonly electronFs: FileSystemAdapter
       readonly requestUrl: (
         request: string | RequestUrlParam,
       ) => RequestUrlResponsePromise
@@ -38,6 +40,7 @@ export class DataManager {
    * @returns full LinkObjectData
    */
   async getLinkData(path: string): Promise<LinkObject> {
+    const fooDebug = dmDebug.extend("getLinkData")
     const parsedPath = this.deps.pathUtils.parseInputString(path)
     if (parsedPath.type === "webUrl") {
       const stored = await this.deps.ogpStore.get(parsedPath.path)
@@ -53,11 +56,19 @@ export class DataManager {
         image: ogpData.image,
       }
     } else {
+      let image: string | undefined
+
+      try {
+        image = (await this.deps.electronFs.getFileIcon(path)).toDataURL()
+      } catch (e) {
+        fooDebug(`failed getting image from path, cause:`, e)
+      }
       const pathData = pathHelper.toObject(parsedPath.path)
       return {
         path: parsedPath.path,
         title: parsedPath.named || pathData.name,
         hostname: `local - ${pathData.base}`,
+        image: image,
       }
     }
   }

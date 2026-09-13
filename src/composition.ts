@@ -3,7 +3,10 @@ import { requestUrl } from "obsidian"
 import { DevApi, PublicApi } from "./api"
 import { ConfigManager } from "./config/link-card-config"
 import { DataManager, InlineLinkParser, linkBlockParser } from "./data-manager"
-import { ElectronAdapter } from "./environment/electron-adapter"
+import {
+  ElectronAdapter,
+  FileSystemAdapter,
+} from "./environment/electron-adapter"
 import {
   ObsidianAdapter,
   ObsidianCardLink,
@@ -55,11 +58,14 @@ export class PluginComposition {
     const blockParser = linkBlockParser
     const inlineParser = new InlineLinkParser("LuLink")
 
+    const electronFsAdapter = new FileSystemAdapter(electronAdapter.electron)
+
     this.dataManager = new DataManager({
       pathUtils: this.pathUtils,
       ogpStore,
       blockParser,
       inlineParser: inlineParser,
+      electronFs: electronFsAdapter,
       requestUrl: requestUrl,
     })
 
@@ -67,7 +73,7 @@ export class PluginComposition {
       this.config.data.allowOutsideVault === true
         ? new OpenService({
             obsidian,
-            electron: electronAdapter.getElectronShell(),
+            electron: electronAdapter.electron?.shell,
             pathUtils: this.pathUtils,
             platform: currentPlatform,
           })
