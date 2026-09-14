@@ -1,5 +1,8 @@
 import type { RequestUrlParam, RequestUrlResponsePromise } from "obsidian"
-import type { OgpStore } from "./repository/indexed-db-store"
+import type { ElectronFs } from "./environment/electron-adapter"
+import type { WindowsAdapter } from "./environment/windows-adapter"
+import type { LuLinkFsAdapter } from "./filesystem/fs-adapter"
+import { IconStore, type OgpStore } from "./repository/indexed-db-store"
 import {
   type LinkInputObject,
   LinkInputObjectSchema,
@@ -10,19 +13,24 @@ import {
   getHtmlMeta,
   getHtmlTitle,
   LuLinkError,
+  luDebug,
   toAbsoluteUrl,
 } from "./utils/helper"
 import { type PathUtils, pathHelper } from "./utils/path-helper"
 import type { RegexFlag } from "./utils/text-helper"
 import { textHelper as txt } from "./utils/text-helper"
 
+const dmDebug = luDebug("DataManager")
+
 export class DataManager {
   constructor(
     private readonly deps: {
       readonly pathUtils: PathUtils
       readonly ogpStore: OgpStore
+      readonly iconStore: IconStore
       readonly blockParser: typeof linkBlockParser
       readonly inlineParser: InlineLinkParser
+      readonly luFs: LuLinkFsAdapter
       readonly requestUrl: (
         request: string | RequestUrlParam,
       ) => RequestUrlResponsePromise
@@ -42,6 +50,7 @@ export class DataManager {
       if (!stored) {
         this.deps.ogpStore.add(ogpData)
       }
+
       return {
         path: parsedPath.path,
         title: parsedPath.named || ogpData.title,
@@ -50,11 +59,28 @@ export class DataManager {
         image: ogpData.image,
       }
     } else {
+      let image: string | undefined
+      if (pathHelper.isAbsolute(path)) {
+        const cached = await this.deps.iconStore.get(path)
+
+        if (cached) {
+          image = URL.createObjectURL(cached.image)
+        } else {
+          try {
+            image = await this.deps.luFs.getFileIcon(path)
+          } catch {}
+          if (image) {
+            this.deps.iconStore.add({ path, imageUrl: image })
+          }
+        }
+      }
       const pathData = pathHelper.toObject(parsedPath.path)
+
       return {
         path: parsedPath.path,
         title: parsedPath.named || pathData.name,
         hostname: `local - ${pathData.base}`,
+        image: image,
       }
     }
   }
@@ -64,19 +90,30 @@ export class DataManager {
    * @returns full LinkObject - options from the codeblock will have the highest priority and overwrite ogpData and fallbacks
    */
   async getBlockData(text: string): Promise<LinkObject[]> {
+    const gbdDebug = dmDebug.extend("getBlockData")
+    gbdDebug(`input: ${text}`)
+
     const finalData: LinkObject[] = []
-    const inputs = this.deps.blockParser.getData(text)
-    inputs.forEach(async input => {
-      const data = await this.getLinkData(input.path)
+    const blockData = this.deps.blockParser.getData(text)
+    gbdDebug(`blockData: ${JSON.stringify(blockData)}`)
+    let i = 0
+    for (const inputObject of blockData) {
+      i++
+      const data = await this.getLinkData(inputObject.path)
+      gbdDebug(`linkData${i}: ${finalData}`)
       const result = {
         path: data.path,
-        title: input.title || data.title,
-        description: input.description || data.description,
-        hostname: input.hostname || data.hostname,
-        image: input.image || data.image,
+        title: inputObject.title || data.title,
+        description: inputObject.description || data.description,
+        hostname: inputObject.hostname || data.hostname,
+        image: inputObject.image || data.image,
       }
+      gbdDebug(`result${i}: ${JSON.stringify(result)}`)
       finalData.push(result)
-    })
+    }
+
+    gbdDebug(`finalData: ${JSON.stringify(finalData)}`)
+
     return finalData
   }
   async getOpenGraphData(url: string): Promise<OgpData> {
@@ -142,30 +179,39 @@ export class InlineLinkParser {
    * @example (`"[[ C:User/My Plugin/npm data.ts | bla ]]" , "{bla: {} }"`) => [`[[ C:User/My Plugin/npm data.ts | bla ]]`, `{bla: {} }`]
    * opposite of string[].map(s => `"${s}"`).join(",")
    */
-  static getLinkValues(input: string): string[] {
-    const values: string[] = []
-    let current = ""
-    let inQuotes = false
+  static getLinkValues(input: string) {
+    const fooDebug = dmDebug.extend("getLinkValues")
+    fooDebug(`input: ${input}`)
 
-    for (const char of input) {
-      if (char === '"') {
-        inQuotes = !inQuotes
-        continue
-      }
-      if (char === "," && !inQuotes) {
-        values.push(current.trim())
-        current = ""
-        continue
-      }
-      current += char
-    }
-    if (current.trim()) {
-      values.push(current.trim())
-    }
+    const matchedVals = [...input.matchAll(/"\s?([^|"]*)\|?([^"]*)?"/g)]
 
-    return values
+    fooDebug(`matchedvals: ${matchedVals}`)
+
+    const mappedValues = matchedVals
+      .map(v => {
+        return {
+          path: v[1]?.trim(),
+          name: v[2]?.trim(),
+        }
+      })
+      .filter(v => Boolean(v.path))
+      .map(v => {
+        return { path: v.path, name: v.name ? v.name : undefined }
+      }) as {
+      path: string
+      name: string | undefined
+    }[]
+
+    fooDebug(`mappedValues`, mappedValues)
+    const output = mappedValues.filter(v => v.path !== undefined)
+
+    fooDebug(`parsedValues: ${matchedVals}`)
+    fooDebug(`output: ${output}`)
+    return output
   }
 }
+
+const lbpDebug = dmDebug.extend("linkBlockParser")
 
 export const linkBlockParser = {
   /**
@@ -173,15 +219,20 @@ export const linkBlockParser = {
    * does NOT do validation or normalization of paths or anything else
    */
   getData(text: string) {
-    const validEntries: LinkInputObject[] = []
-    const errors: Error[] = []
     try {
+      const fooDebug = lbpDebug.extend("getData")
+      fooDebug(`input: ${text}`)
+
+      const validEntries: LinkInputObject[] = []
+      const errors: Error[] = []
       const tuples = txt.findKeyValuePairs(text)
+      fooDebug(`tuples: ${tuples}`)
       const unqObjects = this.groupLinkOptions(tuples)
+      fooDebug(`unqObjects: ${JSON.stringify(unqObjects)}`)
       unqObjects.forEach(data => {
         const parsed = LinkInputObjectSchema.safeParse(data)
         if (parsed.success) {
-          validEntries.push()
+          validEntries.push(parsed.data)
         } else {
           errors.push(
             new LuLinkError(`invalid parsed data`, {
@@ -191,27 +242,33 @@ export const linkBlockParser = {
         }
       })
 
-      if (errors) {
+      if (errors.length > 0) {
         console.error(
           `failed parsing ${errors.length} of ${unqObjects.length} inputs.`,
           ...errors,
         )
       }
+      fooDebug(`validEntries: ${JSON.stringify(validEntries)}`)
+
       return validEntries
     } catch (e) {
       throw new LuLinkError(`failed parsing text block input`, { cause: e })
     }
   },
   groupLinkOptions(rawTuples: [string, string][]) {
+    const fooDebug = lbpDebug.extend("getData")
+    fooDebug(`input:`, rawTuples)
+
     let i = 0
 
     const result: Record<string, string>[] = []
 
     while (rawTuples[i]?.[0] === "path") {
       const pathTuple = rawTuples[i]
+      fooDebug(`pathTuple:`, pathTuple)
       const pathOptions: ([string, string] | undefined)[] = []
       i++
-      while (rawTuples[i]?.[0] !== "path") {
+      while (rawTuples[i]?.[0] !== "path" && i < rawTuples.length) {
         pathOptions.push(rawTuples[i])
         i++
       }
@@ -224,6 +281,7 @@ export const linkBlockParser = {
         )
       }
     }
+    fooDebug(`result: ${result}`)
     return result
   },
 }

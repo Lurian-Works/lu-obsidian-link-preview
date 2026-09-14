@@ -44,12 +44,9 @@ export const textHelper = {
       if (i >= raw.length) {
         throw new LuLinkError("Expected ':' after key")
       }
-
       const key = raw.slice(keyStart, i).trim().toLowerCase()
-
       // Skip ':'
       i++
-
       // Skip spaces/tabs after ':'
       while (i < raw.length && (raw[i] === " " || raw[i] === "\t")) {
         i++
@@ -67,11 +64,11 @@ export const textHelper = {
         if (i >= raw.length) {
           throw new LuLinkError(`Unterminated quoted value for "${key}"`)
         }
-
         result.push([key, raw.slice(valueStart, i)])
 
         // Skip closing quote
-        i++
+        if (i < raw.length && raw[i] === `"`) i++
+
         // Skip whitespace
         while (i < raw.length && (raw[i] === " " || raw[i] === "\t")) {
           i++
@@ -81,7 +78,6 @@ export const textHelper = {
           throw new LuLinkError(`Unexpected content after value for "${key}"`)
         }
       }
-
       // Unquoted value
       else {
         const valueStart = i

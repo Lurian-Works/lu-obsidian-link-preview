@@ -1,8 +1,7 @@
 import { spawn } from "node:child_process"
-import type { ElectronShell } from "./environment/electron-adapter"
-import type { ObsidianAdapter } from "./environment/obsidian-adapter"
-import { type Platform, WebURLSchema } from "./schema"
-import { type PathUtils, pathHelper } from "./utils/path-helper"
+import type { ObsidianAdapter } from "../environment/obsidian-adapter"
+import { type Platform, WebURLSchema } from "../schema"
+import { type PathUtils, pathHelper } from "../utils/path-helper"
 
 type FsOpen =
   | string
@@ -18,7 +17,7 @@ export class OpenService {
   constructor(
     private deps: {
       obsidian: ObsidianAdapter
-      electron?: ElectronShell | null
+      electron?: Electron.Shell
       pathUtils: PathUtils
       platform: Platform
     },

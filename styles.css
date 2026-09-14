@@ -15,8 +15,8 @@
 }
 
 .lu-lc-image {
-  width: 160px;
-  min-width: 160px;
+  width: 100%;
+  min-width: 128px;
   object-fit: cover;
   background: var(--background-primary);
 }
@@ -52,3 +52,36 @@
   background: var(--background-secondary);
   color: var(--text-muted);
 }
+
+.lu-lc-inline-wrapper .lu-lc-card {
+  gap: 0em;
+  overflow: hidden;
+  margin: 0.5rem 0;
+  max-height: 3em;
+  max-width: 14em;
+  overflow: hidden;
+}
+.lu-lc-inline-wrapper .lu-lc-content {
+  gap: 0.35rem;
+  padding: 0.3rem;
+  overflow: hidden;
+}
+.lu-lc-inline-wrapper .lu-lc-title {
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+.lu-lc-inline-wrapper .lu-lc-image {
+  max-width: 3em;
+  min-width: 0px;
+  object-fit: cover;
+  background: var(--background-primary);
+}
+.lu-lc-inline-wrapper .lu-lc-description {
+  display: none;
+}
+
+/*# sourceMappingURL=styles.css.map */

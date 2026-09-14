@@ -7,6 +7,8 @@
     "build": "node esbuild.config.mjs",
     "build:dist": "node scripts/cli.mjs buildDist",
     "build:dev": "node scripts/cli.mjs buildDevVault",
+    "build:styles": "node scripts/cli.mjs buildStyles",
+    "watch:styles": "node scripts/cli.mjs watchStylesDevVault",
     "dev": "node esbuild.config.mjs --watch",
     "prepareRelease": "node scripts/cli.mjs prepareRelease",
     "release": "node scripts/cli.mjs makeRelease",
@@ -16,15 +18,17 @@
     "docs": "typedoc",
     "docs:dev": "typedoc --options typedoc-dev.json",
     "lint": "biome check --write",
-    "preview": "vite",
+    "prev": "vite",
     "play": "tsx playground/main-preview.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
     "@clean-jsdoc-theme/typedoc": "^5.2.0",
     "@types/node": "^25.8.0",
+    "electron": "^44.3.0",
     "esbuild": "^0.20.0",
     "obsidian": "latest",
+    "sass": "^1.104.0",
     "sass-embedded": "^1.103.1",
     "tsx": "^4.23.13",
     "typedoc": "^0.28.20",
@@ -33,6 +37,7 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
+    "debug": "^4.4.3",
     "dexie": "^4.4.5",
     "zod": "^4.5.4"
   }

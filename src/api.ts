@@ -1,7 +1,8 @@
+import createDebug from "debug"
 import type { ConfigManager } from "./config/link-card-config"
 import type { DataManager } from "./data-manager"
+import type { OpenService } from "./filesystem/open-service"
 import type { LinkCardService } from "./link-card-service"
-import type { OpenService } from "./open-service"
 import type { DvLink, LinkInputObject } from "./schema"
 import type { PathUtils } from "./utils/path-helper"
 
@@ -60,12 +61,15 @@ export class DevApi {
   parser?: DataManager
   pathUtils?: PathUtils
   openService?: OpenService
+  debug
   constructor(
     private readonly __config: ConfigManager,
     private readonly __parser: DataManager,
     private readonly __pathUtils: PathUtils,
     private readonly __openService?: OpenService,
-  ) {}
+  ) {
+    this.debug = createDebug
+  }
   activate() {
     this.config = this.__config
     this.parser = this.__parser
