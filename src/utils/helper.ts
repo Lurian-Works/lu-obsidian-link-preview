@@ -1,16 +1,20 @@
-import { requestUrl } from "obsidian"
-import { type OgpData, WebURLSchema } from "../schema"
+import { WebURLSchema } from "../schema"
 
 export class LuLinkError extends Error {}
 
-export function extractUrl(value: string): string | null {
+import createDebug from "debug"
+
+export function luDebug(namespace: string) {
+  return createDebug("LuLink").extend(namespace)
+}
+
+/**
+ * extracts urls from any text that contains any
+ */
+export function extractUrls(value: string): string[] | null {
   const markdownLinkMatch = value.match(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/i)
-  if (markdownLinkMatch?.[1]) return markdownLinkMatch[1]
-
-  const plainUrlMatch = value.match(/https?:\/\/\S+/i)
-  if (plainUrlMatch?.[0]) return plainUrlMatch[0]
-
-  return null
+  if (markdownLinkMatch) return markdownLinkMatch
+  return value.match(/https?:\/\/\S+/i)
 }
 
 export function isWebUrl(value: string): boolean {
@@ -73,31 +77,40 @@ export function getHtmlMeta(
   return undefined
 }
 
-export async function getOpenGraphData(url: string): Promise<OgpData> {
-  const response = await requestUrl({
-    url,
-    method: "GET",
-    headers: {
-      "User-Agent": "Mozilla/5.0 Obsidian Link Preview Plugin",
-    },
-  })
-  const html = response.text
-
-  const data = {
-    url,
-    title:
-      getHtmlMeta(html, "og:title")
-      || getHtmlMeta(html, "twitter:title")
-      || getHtmlTitle(html)
-      || url,
-    description:
-      getHtmlMeta(html, "og:description")
-      || getHtmlMeta(html, "twitter:description"),
-    image: toAbsoluteUrl(
-      getHtmlMeta(html, "og:image") || getHtmlMeta(html, "twitter:image"),
-      url,
-    ),
-    siteName: getHtmlMeta(html, "og:site_name") || new URL(url).hostname,
+/**
+ * updates an nested object while only updating/adding whats defined in the update
+ * @example
+ * deepUpdate({num: 3, data: {path: "a", values: {val1: "a", val2: "a"}}} , {data: {values: {val2: "b"}}, info:"b"})
+ * => {num: 3, data: {path: "a", values: {val1: "a", val2: "b"}, info: "b"}}
+ */
+export function deepUpdate<
+  T extends Record<string, unknown>,
+  U extends Record<string, unknown>,
+>(target: T, update: U): T & U {
+  if (!isPlainObject(target) || !isPlainObject(update)) {
+    throw new Error(`not an object`)
   }
-  return data
+  const result: Record<string, unknown> = { ...target }
+  for (const key of Object.keys(update)) {
+    const value = update[key]
+    if (value === undefined) {
+      continue
+    }
+    const current = result[key]
+    if (isPlainObject(current) && isPlainObject(value)) {
+      result[key] = deepUpdate(current, value)
+    } else {
+      result[key] = value
+    }
+  }
+  return result as T & U
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === "object"
+    && value !== null
+    && !Array.isArray(value)
+    && Object.getPrototypeOf(value) === Object.prototype
+  )
 }

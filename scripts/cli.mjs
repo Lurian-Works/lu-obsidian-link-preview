@@ -1,15 +1,19 @@
 import {
   buildDevVault,
   buildDist,
+  buildStyles,
   makeRelease,
   prepareRelease,
-} from "./root.mjs"
+  watchStylesDevVault,
+} from "./main.mjs"
 
 const commands = {
   buildDist,
   buildDevVault,
   prepareRelease,
   makeRelease,
+  buildStyles,
+  watchStylesDevVault,
 }
 
 const commandId = process.argv[2]

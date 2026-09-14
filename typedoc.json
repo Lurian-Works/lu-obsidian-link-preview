@@ -1,25 +1,40 @@
 {
-  "$schema": "https://typedoc.org/schema.json",
-
-  "entryPoints": ["src/main.ts"],
-  "out": "docs/dev",
+  "entryPoints": ["src/composition.ts"],
+  "entryPointStrategy": "expand",
   "exclude": ["./playground", "./scripts"],
 
-  "name": "Mycea Ui Lib",
+  "name": "LuLink Dev Docs",
 
-  "excludePrivate": true,
-  "excludeProtected": true,
-  "excludeInternal": true,
+  "plugin": ["@clean-jsdoc-theme/typedoc"],
+  "outputs": [
+    {
+      "name": "clean-jsdoc-theme",
+      "path": "docs/user"
+    }
+  ],
 
-  "categorizeByGroup": false,
+  "cleanJsdocTheme": {
+    "siteName": "LuLink Dev Docs",
+    "llmsTxt": true,
+    "docs": "./docs/user",
+    "docGroups": ["Guides"],
+    "clubSidebarItems": false,
+    "copyPage": true,
+    "basePath": "LuLink/docs/user",
 
-  "navigation": {
-    "includeGroups": true,
-    "includeCategories": true,
-    "includeFolders": true
-  },
-
-  "sort": ["kind", "instance-first", "alphabetical-ignoring-documents"],
-
-  "cleanOutputDir": true
+    "menu": [
+      { "title": "Home", "link": "/", "icon": "lucide:home" },
+      {
+        "title": "GitHub",
+        "link": "https://github.com/Lurian-Works/lu-obsidian-link-preview",
+        "icon": "simpleicons:github"
+      },
+      {
+        "title": "Changelog",
+        "link": "/changelog",
+        "target": "_self",
+        "class": "menu-changelog"
+      }
+    ]
+  }
 }

@@ -1,6 +1,7 @@
 node_modules/
 .code-workspace
 .vscode
+.vitest/
 dist/
 playground/
 **/private**.*

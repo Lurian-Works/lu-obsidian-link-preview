@@ -1,25 +1,5 @@
-import type { DataManager } from "./data-layer"
-import type { LinkCardSettings, OgpData } from "./schema"
-
-export class LinkCardFactory {
-  constructor(
-    private readonly dataManager: DataManager,
-    settings?: () => LinkCardSettings,
-  ) {}
-
-  async renderLinkCard(wrapper: HTMLElement, url: string) {
-    wrapper.empty()
-    wrapper.appendChild(linkCardLoadingEl())
-    try {
-      const data = await this.dataManager.getOpenGraphData(url)
-      wrapper.empty()
-      wrapper.appendChild(linkCard(data))
-    } catch (error) {
-      wrapper.appendChild(errorEl("Could not load link preview."))
-      console.error("Link preview failed:", error)
-    }
-  }
-}
+import type { LinkCardSettings } from "./config/link-card-config"
+import type { LinkObject } from "./schema"
 
 export function errorEl(message: string) {
   return createEl("div", {
@@ -28,97 +8,130 @@ export function errorEl(message: string) {
   })
 }
 
-function linkCardLoadingEl() {
+export function linkCardLoadingEl() {
   return createEl("div", {
     text: "Loading preview...",
     cls: "lu-lc-loading",
   })
 }
 
-function linkCard(data: OgpData) {
-  const card = createEl("a", {
-    cls: "lu-lc-card",
-    attr: {
-      href: data.url,
-      target: "_blank",
-      rel: "noopener noreferrer",
-    },
-  })
+// DOM HELPER
 
-  if (data.image) {
-    card.createEl("img", {
-      cls: "lu-lc-image",
-      attr: {
-        src: data.image,
-        alt: "",
-      },
-    })
-  }
-
-  const content = card.createEl("div", {
-    cls: "lu-lc-content",
-  })
-
-  content.createEl("div", {
-    text: data.title || data.url,
-    cls: "lu-lc-title",
-  })
-
-  if (data.description) {
-    content.createEl("div", {
-      text: data.description,
-      cls: "lu-lc-description",
-    })
-  }
-
-  content.createEl("div", {
-    text: data.siteName || new URL(data.url).hostname,
-    cls: "lu-lc-site",
-  })
-
-  return card
+export type ElementOptions = {
+  cls?: string | readonly string[]
+  text?: string
+  attr?: Record<string, string>
+  parent?: Node
+  children?: Node | readonly Node[]
 }
 
-function fileCard(data: OgpData) {
-  const card = createEl("a", {
-    cls: "lu-lc-card",
-    attr: {
-      href: data.url,
-      target: "_blank",
-      rel: "noopener noreferrer",
-    },
-  })
+export function createEl<K extends keyof HTMLElementTagNameMap>(
+  tagName: K,
+  options?: ElementOptions,
+): HTMLElementTagNameMap[K] {
+  const el = document.createElement(tagName)
 
-  if (data.image) {
-    card.createEl("img", {
-      cls: "lu-lc-image",
+  if (options?.cls) {
+    el.classList.add(
+      ...(typeof options.cls === "string" ? [options.cls] : options.cls),
+    )
+  }
+
+  if (options?.text !== undefined) {
+    el.textContent = options.text
+  }
+
+  if (options?.attr) {
+    for (const [name, value] of Object.entries(options.attr)) {
+      el.setAttribute(name, value)
+    }
+  }
+
+  if (options?.children) {
+    el.append(
+      ...(Array.isArray(options.children)
+        ? options.children
+        : [options.children]),
+    )
+  }
+
+  options?.parent?.appendChild(el)
+
+  return el
+}
+
+/**
+ * @param onClick if onClick is defined, automatic openniing via anchor and href is not applied
+ * without settings it falls back to a simple html anchor element with an href attribute
+ *
+ */
+export function linkCard(options: {
+  data: LinkObject
+  onClick?: (event: PointerEvent, path: string) => void | Promise<void>
+  settings?: LinkCardSettings
+}) {
+  let card: HTMLElement
+  if (options.settings?.allowOutsideVault === true && options.onClick) {
+    card = createEl("div", {
+      cls: "lu-lc-card",
+    })
+    card.addEventListener("click", e => {
+      options.onClick?.(e, options.data.path)
+    })
+  } else {
+    card = createEl("a", {
+      cls: "lu-lc-card",
       attr: {
-        src: data.image,
-        alt: "",
+        href: options.data.path,
+        target: "_blank",
+        rel: "noopener noreferrer",
       },
     })
   }
 
-  const content = card.createEl("div", {
-    cls: "lu-lc-content",
-  })
-
-  content.createEl("div", {
-    text: data.title || data.url,
-    cls: "lu-lc-title",
-  })
-
-  if (data.description) {
-    content.createEl("div", {
-      text: data.description,
-      cls: "lu-lc-description",
+  if (options.data.image) {
+    const imageEl = createEl("img", {
+      cls: "lu-lc-image",
+      attr: {
+        src: options.data.image,
+        alt: "",
+      },
+    })
+    card.appendChild(imageEl)
+    imageEl.addEventListener("click", e => {
+      if (e.button === 0) {
+        e.preventDefault()
+      }
     })
   }
-
-  content.createEl("div", {
-    text: data.siteName || new URL(data.url).hostname,
-    cls: "lu-lc-site",
+  const content = createEl("div", {
+    cls: "lu-lc-content",
   })
+  card.appendChild(content)
+
+  const titleEl = createEl("div", {
+    text: options.data.title,
+    cls: "lu-lc-title",
+  })
+  content.appendChild(titleEl)
+
+  if (
+    options.data.description
+    && options.settings?.ui?.showDescription !== false
+  ) {
+    const descriptionEl = createEl("div", {
+      text: options.data.description,
+      cls: "lu-lc-description",
+    })
+    content.appendChild(descriptionEl)
+  }
+  if (options.settings?.ui?.showHost !== false) {
+    const hostnameEl = createEl("div", {
+      text: options.data.hostname,
+      cls: "lu-lc-host",
+    })
+    content.appendChild(hostnameEl)
+  }
 
   return card
 }

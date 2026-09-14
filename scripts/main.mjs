@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process"
+import { exec, execSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { getBuildData } from "./data.mjs"
@@ -28,7 +28,8 @@ export function buildDist() {
   const includeFiles = [
     "main.js",
     "manifest.json",
-    path.join("src", "styles.css"),
+    "styles.css",
+    "styles.css.map",
     "README.md",
     "LICENSE.md",
   ]
@@ -78,7 +79,7 @@ export function prepareRelease() {
   // runNpm("lint")
   runNpm("typecheck")
   buildDist()
-  //runNpm("test")
+  runNpm("test")
   runNpm("docs")
   buildDevVault()
 }
@@ -146,4 +147,14 @@ function bumpVersion(version, kind) {
     throw new Error(
       `invalid release kind - options are: ${releaseCommands.join(", ")}`,
     )
+}
+
+export function buildStyles() {
+  execSync("sass ./src/styles/main.scss ./styles.css")
+}
+
+export function watchStylesDevVault() {
+  exec(
+    `sass --watch src/styles/main.scss:"${paths.devVault}/.obsidian/snippets/lu-link-styles.css"`,
+  )
 }
