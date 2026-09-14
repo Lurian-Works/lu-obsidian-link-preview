@@ -1,6 +1,6 @@
 import z from "zod"
 import type { JsonStore } from "../repository/json-store"
-import { deepUpdate, LuLinkError, luLinkMessage } from "../utils/helper"
+import { deepUpdate, LuLinkError } from "../utils/helper"
 
 export const UiSettingsSchema = z.object({
   showHost: z.boolean().optional(),

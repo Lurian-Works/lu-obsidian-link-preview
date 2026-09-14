@@ -22,6 +22,7 @@ export class LinkCardService {
     this.handleClick = this.handleClick.bind(this)
   }
   handleClick(event: PointerEvent, path: string) {
+    if (!this.deps.openService) throw new Error(`open service is not defined`)
     if (event.button === 0) {
       this.deps.openService?.open(path)
     }

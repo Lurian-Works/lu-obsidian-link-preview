@@ -62,6 +62,7 @@ export class PluginComposition {
 
     this.config = await ConfigManager.init(jsonStore, `settings`)
 
+    this.pathUtils = new PathUtils(obsidian.vaultRoot)
     this.openService =
       this.config.data.allowOutsideVault === true
         ? new OpenService({
@@ -72,7 +73,6 @@ export class PluginComposition {
           })
         : undefined
 
-    this.pathUtils = new PathUtils(obsidian.vaultRoot)
     const blockParser = linkBlockParser
     const inlineParser = new InlineLinkParser("LuLink")
 

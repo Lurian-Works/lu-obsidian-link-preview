@@ -385,7 +385,6 @@ export class PathUtils {
         : propVal
     return this.toVaultPath(path)
   }
-
   isVaultPath(inPath: string): boolean {
     const normPath = pathHelper.normalize(inPath)
     if (!normPath) return false
