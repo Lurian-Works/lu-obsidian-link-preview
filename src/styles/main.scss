@@ -1,6 +1,6 @@
 .lu-lc-card {
   display: flex;
-  gap: 1rem;
+
   overflow: hidden;
   margin: 1rem 0;
   border: 1px solid var(--background-modifier-border);
@@ -59,10 +59,10 @@
 */
 
 .lu-lc-image {
-  display: grid;
   min-width: 100px;
-  max-width: 128px;
   height: auto;
+  max-width: 20% !important;
+  width: 10%;
   object-fit: cover;
   background: var(--background-primary);
 }
@@ -99,6 +99,7 @@
   background: var(--background-secondary);
   color: var(--text-muted);
 }
+
 .lu-lc-inline-wrapper {
   display: inline-flex;
   width: fit-content;

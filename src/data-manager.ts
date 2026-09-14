@@ -62,6 +62,7 @@ export class DataManager {
       let image: string | undefined
       if (pathHelper.isAbsolute(path)) {
         const cached = await this.deps.iconStore.get(path)
+
         if (cached) {
           image = URL.createObjectURL(cached.image)
         } else {

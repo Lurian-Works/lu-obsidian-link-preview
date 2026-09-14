@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process"
+import { exec, execSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { getBuildData } from "./data.mjs"
@@ -154,7 +154,7 @@ export function buildStyles() {
 }
 
 export function watchStylesDevVault() {
-  execSync(
+  exec(
     `sass --watch src/styles/main.scss:"${paths.devVault}/.obsidian/snippets/lu-link-styles.css"`,
   )
 }
