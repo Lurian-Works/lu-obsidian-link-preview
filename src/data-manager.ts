@@ -112,7 +112,7 @@ export class DataManager {
         description: inputObject.description || data.description,
         hostname: inputObject.hostname || data.hostname,
         image: inputObject.image || data.image,
-        display: data.display || blockData.blockOptions?.display,
+        display: inputObject.display || blockData.blockOptions?.display,
       }
 
       fooDebug(`result${i}: ${JSON.stringify(result)}`)
@@ -277,7 +277,8 @@ export const linkBlockParser = {
     let display: CardDisplayOption | undefined
 
     const linkObjects: Record<string, string>[] = []
-    // skip block options
+
+    // Block options
     if (rawTuples[0]?.[0].trim() === "display") {
       const parsedBlockDisplay = CardDisplayOptionSchema.safeParse(
         rawTuples[0]?.[1].trim(),
