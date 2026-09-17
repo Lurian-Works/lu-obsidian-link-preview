@@ -1,9 +1,9 @@
 import type { RequestUrlParam, RequestUrlResponsePromise } from "obsidian"
-import type { ElectronFs } from "./environment/electron-adapter"
-import type { WindowsAdapter } from "./environment/windows-adapter"
 import type { LuLinkFsAdapter } from "./filesystem/fs-adapter"
-import { IconStore, type OgpStore } from "./repository/indexed-db-store"
+import type { IconStore, OgpStore } from "./repository/indexed-db-store"
 import {
+  type CardDisplayOption,
+  CardDisplayOptionSchema,
   type LinkInputObject,
   LinkInputObjectSchema,
   type LinkObject,
@@ -89,32 +89,40 @@ export class DataManager {
    * @param text full text of LuLink codeblock
    * @returns full LinkObject - options from the codeblock will have the highest priority and overwrite ogpData and fallbacks
    */
-  async getBlockData(text: string): Promise<LinkObject[]> {
-    const gbdDebug = dmDebug.extend("getBlockData")
-    gbdDebug(`input: ${text}`)
+  async getBlockData(text: string): Promise<{
+    links: LinkObject[]
+    blockOptions?: { display: CardDisplayOption }
+  }> {
+    const fooDebug = dmDebug.extend("getBlockData")
+    fooDebug(`input: ${text}`)
 
     const finalData: LinkObject[] = []
     const blockData = this.deps.blockParser.getData(text)
-    gbdDebug(`blockData: ${JSON.stringify(blockData)}`)
+
+    fooDebug(`blockData: ${JSON.stringify(blockData)}`)
+
     let i = 0
-    for (const inputObject of blockData) {
-      i++
+    for (const inputObject of blockData.links) {
       const data = await this.getLinkData(inputObject.path)
-      gbdDebug(`linkData${i}: ${finalData}`)
+      fooDebug(`linkData${i}: ${finalData}`)
+
       const result = {
         path: data.path,
         title: inputObject.title || data.title,
         description: inputObject.description || data.description,
         hostname: inputObject.hostname || data.hostname,
         image: inputObject.image || data.image,
+        display: data.display || blockData.blockOptions?.display,
       }
-      gbdDebug(`result${i}: ${JSON.stringify(result)}`)
+
+      fooDebug(`result${i}: ${JSON.stringify(result)}`)
       finalData.push(result)
+      i++
     }
 
-    gbdDebug(`finalData: ${JSON.stringify(finalData)}`)
+    fooDebug(`finalData: ${JSON.stringify(finalData)}`)
 
-    return finalData
+    return { links: finalData, blockOptions: blockData.blockOptions }
   }
   async getOpenGraphData(url: string): Promise<OgpData> {
     const response = await this.deps.requestUrl({
@@ -226,11 +234,12 @@ export const linkBlockParser = {
       const validEntries: LinkInputObject[] = []
       const errors: Error[] = []
       const tuples = txt.findKeyValuePairs(text)
+
       fooDebug(`tuples: ${tuples}`)
-      const unqObjects = this.groupLinkOptions(tuples)
-      fooDebug(`unqObjects: ${JSON.stringify(unqObjects)}`)
-      unqObjects.forEach(data => {
-        const parsed = LinkInputObjectSchema.safeParse(data)
+      const parsedBlock = this.groupLinkOptions(tuples)
+      fooDebug(`unqObjects: ${JSON.stringify(parsedBlock)}`)
+      parsedBlock.links.forEach(inputLinkObj => {
+        const parsed = LinkInputObjectSchema.safeParse(inputLinkObj)
         if (parsed.success) {
           validEntries.push(parsed.data)
         } else {
@@ -244,24 +253,42 @@ export const linkBlockParser = {
 
       if (errors.length > 0) {
         console.error(
-          `failed parsing ${errors.length} of ${unqObjects.length} inputs.`,
+          `failed parsing ${errors.length} of ${parsedBlock.links.length} inputs.`,
           ...errors,
         )
       }
       fooDebug(`validEntries: ${JSON.stringify(validEntries)}`)
 
-      return validEntries
+      return {
+        links: validEntries,
+        blockOptions: parsedBlock.blockOptions,
+      }
     } catch (e) {
       throw new LuLinkError(`failed parsing text block input`, { cause: e })
     }
   },
+
   groupLinkOptions(rawTuples: [string, string][]) {
     const fooDebug = lbpDebug.extend("getData")
     fooDebug(`input:`, rawTuples)
 
     let i = 0
 
-    const result: Record<string, string>[] = []
+    let display: CardDisplayOption | undefined
+
+    const linkObjects: Record<string, string>[] = []
+    // skip block options
+    if (rawTuples[0]?.[0].trim() === "display") {
+      const parsedBlockDisplay = CardDisplayOptionSchema.safeParse(
+        rawTuples[0]?.[1].trim(),
+      )
+      if (parsedBlockDisplay.success) {
+        display = parsedBlockDisplay.data
+      } else {
+        console.error(parsedBlockDisplay.error)
+      }
+      i++
+    }
 
     while (rawTuples[i]?.[0] === "path") {
       const pathTuple = rawTuples[i]
@@ -273,7 +300,7 @@ export const linkBlockParser = {
         i++
       }
       if (pathTuple) {
-        result.push(
+        linkObjects.push(
           Object.fromEntries([
             pathTuple,
             ...pathOptions.filter(p => p !== undefined),
@@ -281,7 +308,10 @@ export const linkBlockParser = {
         )
       }
     }
-    fooDebug(`result: ${result}`)
-    return result
+    fooDebug(`result: ${linkObjects}`)
+    return {
+      links: linkObjects,
+      blockOptions: display ? { display } : undefined,
+    }
   },
 }

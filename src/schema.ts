@@ -41,6 +41,9 @@ export const HexColorSchema = z
     "Invalid hex color",
   )
 
+export const CardDisplayOptionSchema = z.literal(["inline", "quad"])
+export type CardDisplayOption = z.infer<typeof CardDisplayOptionSchema>
+
 /**
  * title, description and color will overwrite the global settings or OGP Data
  * keys have to be lowerkase completely in order to simplify parsing raw text block inputs
@@ -51,6 +54,7 @@ export const LinkInputObjectSchema = z.object({
   description: z.string().optional(),
   image: z.string().optional(),
   hostname: z.string().optional(),
+  display: CardDisplayOptionSchema.optional(),
 })
 export type LinkInputObject = z.infer<typeof LinkInputObjectSchema>
 

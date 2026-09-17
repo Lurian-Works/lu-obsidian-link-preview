@@ -89,6 +89,13 @@ export function linkCard(options: {
     })
   }
 
+  if (options.data.display === "quad") {
+    card.classList.add("lu-lc-quad")
+  }
+  if (options.data.display === "inline") {
+    card.classList.add("lu-lc-inline")
+  }
+
   if (options.data.image) {
     const imageEl = createEl("img", {
       cls: "lu-lc-image",

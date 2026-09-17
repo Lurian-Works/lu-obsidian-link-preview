@@ -1,13 +1,12 @@
 .lu-lc-card {
   display: flex;
-
   overflow: hidden;
-  margin: 1rem 0;
   border: 1px solid var(--background-modifier-border);
   border-radius: 14px;
   background: var(--background-secondary);
   color: var(--text-normal);
   text-decoration: none;
+  width: 100%;
 }
 
 .lu-lc-image {
@@ -51,36 +50,34 @@
   background: var(--background-secondary);
   color: var(--text-muted);
 }
+.lc-block-wrapper {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.8em;
+}
 
-.lu-lc-quad {
-  .lu-lc-card {
-    display: box;
-    width: 8em;
-    height: fit-content;
-    overflow: hidden;
-    margin: 1rem 0;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 14px;
-    background: var(--background-secondary);
-    color: var(--text-normal);
-    text-decoration: none;
-    max-height: 12em;
-  }
+.lu-lc-card.lu-lc-quad {
+  display: flex;
+  flex-direction: column;
+  width: 8em;
+  height: fit-content;
+  max-height: 12em;
+  margin: 1rem 0;
+  overflow: hidden;
 
   .lu-lc-card:hover {
     background: var(--background-secondary-alt);
   }
 
   .lu-lc-image {
-    position: relative;
     width: 100%;
-    z-index: 1;
+    max-width: unset !important;
     object-fit: cover;
     background: var(--background-primary);
   }
 
   .lu-lc-content {
-    z-index: 2;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -121,7 +118,47 @@
   }
 }
 
-.lu-lc-inline-wrapper {
+.lu-lc-card.lu-lc-inline {
+  margin: 0;
+  gap: 0em;
+  overflow: hidden;
+  max-height: 4em;
+  height: fit-content;
+  max-width: 14em;
+  overflow: hidden;
+
+  .lu-lc-content {
+    gap: 0.35rem;
+    padding: 0.3rem;
+    overflow: hidden;
+  }
+  .lu-lc-title {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 400;
+    font-size: 0.9em;
+  }
+  .lu-lc-image {
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    background: var(--background-primary);
+  }
+  .lu-lc-description {
+    display: none;
+  }
+  .lu-lc-host {
+    display: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.lu-lc-inline {
   display: inline-flex;
   width: fit-content;
   margin: 0;
@@ -138,34 +175,35 @@
     height: fit-content;
     max-width: 14em;
     overflow: hidden;
-  }
-  .lu-lc-content {
-    gap: 0.35rem;
-    padding: 0.3rem;
-    overflow: hidden;
-  }
-  .lu-lc-title {
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-weight: 400;
-    font-size: 0.9em;
-  }
-  .lu-lc-image {
-    min-width: unset;
-    width: 32px;
-    object-fit: cover;
-    background: var(--background-primary);
-  }
-  .lu-lc-description {
-    display: none;
-  }
-  .lu-lc-host {
-    display: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+
+    .lu-lc-content {
+      gap: 0.35rem;
+      padding: 0.3rem;
+      overflow: hidden;
+    }
+    .lu-lc-title {
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 400;
+      font-size: 0.9em;
+    }
+    .lu-lc-image {
+      min-width: unset;
+      width: 32px;
+      object-fit: cover;
+      background: var(--background-primary);
+    }
+    .lu-lc-description {
+      display: none;
+    }
+    .lu-lc-host {
+      display: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
 }
 

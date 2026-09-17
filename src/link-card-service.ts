@@ -2,7 +2,12 @@ import type { ConfigManager } from "./config/link-card-config"
 import type { DataManager, InlineLinkParser } from "./data-manager"
 import type { OpenService } from "./filesystem/open-service"
 import { errorEl, linkCard } from "./presentation"
-import { type DvLink, type LinkInputObject, LinkObjectSchema } from "./schema"
+import {
+  type CardDisplayOption,
+  type DvLink,
+  type LinkInputObject,
+  LinkObjectSchema,
+} from "./schema"
 import { getTextNodes } from "./utils/dom-helper"
 import { LuLinkError, luDebug } from "./utils/helper"
 import type { PathUtils } from "./utils/path-helper"
@@ -27,30 +32,24 @@ export class LinkCardService {
       this.deps.openService?.open(path)
     }
   }
-  async linkCard(input: LinkInputObject | string, inline?: boolean) {
+  async linkCard(input: LinkInputObject | string) {
     const fooDebug = lcsDebug.extend(`linkCard`)
     fooDebug(`input: ${input}`)
+
+    const cardWrapper = createEl("div")
     try {
       if (typeof input === "string") {
-        const cardWrapper = createEl("div")
-        if (inline) {
-          cardWrapper.classList.add("lu-lc-inline-wrapper")
-        }
-        try {
-          const data = await this.deps.dataManager.getLinkData(input)
-          cardWrapper.appendChild(
-            linkCard({
-              data,
-              onClick: this.deps.openService ? this.handleClick : undefined,
-              settings: this.deps.settings.data,
-            }),
-          )
-        } catch (e) {
-          cardWrapper.appendChild(errorEl(`LinkCard failed`))
-          console.error(e)
-        }
+        const data = await this.deps.dataManager.getLinkData(input)
+        cardWrapper.appendChild(
+          linkCard({
+            data,
+            onClick: this.deps.openService ? this.handleClick : undefined,
+            settings: this.deps.settings.data,
+          }),
+        )
         return cardWrapper
       }
+
       const parsedFull = LinkObjectSchema.safeParse(input)
       fooDebug("parsedFull", parsedFull)
 
@@ -63,35 +62,41 @@ export class LinkCardService {
       }
       const data = await this.deps.dataManager.getLinkData(input.path)
       fooDebug("data", data)
-      return linkCard({
-        data: {
-          path: data.path,
-          hostname: input.hostname || data.hostname,
-          title: input.title || data.title,
-          description: input.description || data.description,
-          image: input.image || data.image,
-        },
-        onClick: this.deps.openService ? this.handleClick : undefined,
-        settings: this.deps.settings.data,
-      })
+      cardWrapper.appendChild(
+        linkCard({
+          data: {
+            path: data.path,
+            hostname: input.hostname || data.hostname,
+            title: input.title || data.title,
+            description: input.description || data.description,
+            image: input.image || data.image,
+            display: input.display,
+          },
+          onClick: this.deps.openService ? this.handleClick : undefined,
+          settings: this.deps.settings.data,
+        }),
+      )
+      return cardWrapper
     } catch (e) {
-      throw new LuLinkError(`failed creating link card`, { cause: e })
+      cardWrapper.appendChild(errorEl(`LinkCard failed`))
+      throw console.error(`failed creating link card`, { cause: e })
     }
   }
   async renderCardBlock(text: string) {
     const blockWrapper = createEl("div", { cls: "lc-block-wrapper" })
 
     try {
-      const settings = this.deps.settings.data
       const linkObjects = await this.deps.dataManager.getBlockData(text)
-      linkObjects.forEach(link => {
-        const card = linkCard({
-          data: link,
-          onClick: this.deps.openService ? this.handleClick : undefined,
-          settings,
-        })
+      for (const link of linkObjects.links) {
+        const card = await this.linkCard(link)
         blockWrapper.appendChild(card)
-      })
+      }
+      if (linkObjects.blockOptions?.display === "inline") {
+        blockWrapper.classList.add("lu-lc-inline-wrapper")
+      }
+      if (linkObjects.blockOptions?.display === "quad") {
+        blockWrapper.classList.add("lu-lc-quad-wrapper")
+      }
     } catch (error) {
       blockWrapper.appendChild(errorEl("Link preview failed"))
       console.error("Link preview failed:", error)
@@ -138,7 +143,7 @@ export class LinkCardService {
           fooDebug(`v(linkValues)${LinkMatchI}`, v)
 
           for (const inputLink of v) {
-            const cardWrapper = createEl("div", { cls: "lu-lc-inline-wrapper" })
+            const cardWrapper = createEl("div", { cls: "lu-lc-inline" })
             fragment.appendChild(cardWrapper)
             try {
               const data = await this.deps.dataManager.getLinkData(
@@ -146,7 +151,10 @@ export class LinkCardService {
               )
               cardWrapper.appendChild(
                 linkCard({
-                  data: { ...data, title: inputLink.name || data.title },
+                  data: {
+                    ...data,
+                    title: inputLink.name || data.title,
+                  },
                   onClick: this.deps.openService ? this.handleClick : undefined,
                   settings: this.deps.settings.data,
                 }),
@@ -176,13 +184,13 @@ export class LinkCardService {
     return [this.deps.pathUtils.resolveYamlPath(yamlValue)]
   }
 
-  async yamlValToCardblock(yamlVal: unknown) {
+  async yamlValToCardblock(yamlVal: unknown, display?: CardDisplayOption) {
     if (!yamlVal) return
     if (typeof yamlVal === "string" || isDvLink(yamlVal)) {
       const paths = this.parseYamlInput(yamlVal)
       const cardWrapper = createEl("div", { cls: "lc-block-wrapper" })
       for (const p of paths) {
-        const card = await this.linkCard(p)
+        const card = await this.linkCard(display ? { path: p, display } : p)
         cardWrapper.appendChild(card)
       }
       return cardWrapper
