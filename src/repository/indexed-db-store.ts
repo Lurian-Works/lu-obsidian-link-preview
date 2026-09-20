@@ -15,7 +15,7 @@ export class LuLinkDb extends Dexie {
   }
 }
 
-interface OgpDataEntry extends OgpData {
+export interface OgpDataEntry extends OgpData {
   createdAt: number
 }
 
@@ -23,7 +23,7 @@ export class OgpStore {
   ogpData: Map<string, OgpDataEntry> = new Map()
   constructor(private readonly db: LuLinkDb) {}
 
-  add(ogpData: OgpData) {
+  add = (ogpData: OgpData) => {
     try {
       const valid = OgpDataSchema.safeParse(ogpData)
       const entry = { ...ogpData, createdAt: Date.now() }
@@ -38,14 +38,14 @@ export class OgpStore {
     }
   }
 
-  async get(url: string) {
+  get = async (url: string) => {
     const cached = this.ogpData.get(url)
     if (cached) return cached
     const data = await this.db.ogpData.get(url)
     if (data) this.ogpData.set(url, data)
     return data
   }
-  async clear() {
+  clear = async () => {
     this.ogpData.clear()
     await this.db.ogpData.clear()
   }
@@ -61,7 +61,7 @@ export class IconStore {
   iconCache: Map<string, IconCacheEntry> = new Map()
   constructor(private readonly db: LuLinkDb) {}
 
-  async add(data: { path: string; imageUrl: string }) {
+  add = async (data: { path: string; imageUrl: string }) => {
     const blob = await fetch(data.imageUrl).then(response => response.blob())
     const entry = { id: data.path, image: blob, createdAt: Date.now() }
     this.iconCache.set(entry.id, entry)
@@ -69,7 +69,7 @@ export class IconStore {
     return entry
   }
 
-  async get(id: string) {
+  get = async (id: string) => {
     const cached = this.iconCache.get(id)
     if (cached) return cached
     const data = await this.db.iconCache.get(id)
@@ -77,8 +77,8 @@ export class IconStore {
     return data
   }
 
-  async clear() {
+  clear = async () => {
     this.iconCache.clear()
-    await this.db.ogpData.clear()
+    await this.db.iconCache.clear()
   }
 }

@@ -1,9 +1,19 @@
+import { modal } from "mycea-lib-ui"
 import type { LinkCardSettings } from "./config/link-card-config"
 import type { LinkObject } from "./schema"
 
-export function errorEl(message: string) {
+export function errorEl(message: string, options?: ErrorOptions) {
+  let causeMessage: string | undefined
+  if (options?.cause) {
+    if (options.cause instanceof Error) {
+      causeMessage = options.cause.message
+    } else {
+      causeMessage = JSON.stringify(options.cause)
+    }
+  }
+
   return createEl("div", {
-    text: message,
+    text: causeMessage ? `${message} - cause: ${causeMessage}` : message,
     cls: "lu-lc-error",
   })
 }
@@ -71,6 +81,8 @@ export function linkCard(options: {
   settings?: LinkCardSettings
 }) {
   let card: HTMLElement
+
+  // Card Base - native href or function
   if (options.settings?.allowOutsideVault === true && options.onClick) {
     card = createEl("div", {
       cls: "lu-lc-card",
@@ -89,6 +101,7 @@ export function linkCard(options: {
     })
   }
 
+  // Display options
   if (options.data.display === "quad") {
     card.classList.add("lu-lc-quad")
   }
@@ -96,6 +109,21 @@ export function linkCard(options: {
     card.classList.add("lu-lc-inline")
   }
 
+  // Hover
+  const HoverModal = new modal.description({
+    text: options.data.path,
+    anchor: card,
+    position: "topCenter",
+    cls: "lu-lc-hover",
+  })
+  new HoverTrigger(
+    card,
+    3000,
+    () => HoverModal.open(),
+    () => HoverModal.close(),
+  )
+
+  // Image
   if (options.data.image) {
     const imageEl = createEl("img", {
       cls: "lu-lc-image",
@@ -111,6 +139,8 @@ export function linkCard(options: {
       }
     })
   }
+
+  // Content
   const content = createEl("div", {
     cls: "lu-lc-content",
   })
@@ -141,4 +171,166 @@ export function linkCard(options: {
   }
 
   return card
+}
+
+export class HoverTrigger {
+  private timer: ReturnType<typeof setTimeout> | undefined
+
+  constructor(
+    private readonly element: HTMLElement,
+    private readonly delay: number,
+    private readonly onTrigger: () => void,
+    private readonly onCancel: () => void,
+  ) {
+    element.addEventListener("pointerenter", this.enter)
+    element.addEventListener("pointerleave", this.leave)
+  }
+
+  private enter = () => {
+    this.timer = setTimeout(() => {
+      this.timer = undefined
+      this.onTrigger()
+    }, this.delay)
+  }
+
+  private leave = () => {
+    if (this.timer !== undefined) {
+      clearTimeout(this.timer)
+      this.timer = undefined
+    }
+    this.onCancel()
+  }
+
+  destroy() {
+    this.leave()
+    this.element.removeEventListener("pointerenter", this.enter)
+    this.element.removeEventListener("pointerleave", this.leave)
+  }
+}
+
+export const anchorPositions = [
+  "topLeft",
+  "topRight",
+  "bottomLeft",
+  "bottomRight",
+  "topCenter",
+  "bottomCenter",
+] as const
+
+export type AnchorPosition = (typeof anchorPositions)[number]
+
+/**
+ * @param position bottom right - default
+ */
+export function setAbsoluteAnchoredPosition(
+  el: HTMLElement,
+  anchor: HTMLElement,
+  position?: AnchorPosition,
+) {
+  const anchorRec = anchor.getBoundingClientRect()
+  el.style.position = "fixed"
+
+  const docWidth = document.body.getBoundingClientRect().width
+  //const docHeight = document.body.getBoundingClientRect().height
+  const boundingCenterH =
+    (anchorRec.right - anchorRec.left) / 2 + anchorRec.left
+
+  if (position === "topLeft") {
+    el.style.right = `${docWidth - anchorRec.left}px`
+    el.style.bottom = `${anchorRec.bottom}px`
+  } else if (position === "topRight") {
+    el.style.left = `${anchorRec.right}px`
+    el.style.bottom = `${anchorRec.bottom}px`
+  } else if (position === "topCenter") {
+    el.style.right = `${boundingCenterH}px`
+    el.style.bottom = `${anchorRec.top}px`
+  } else if (position === "bottomLeft") {
+    el.style.right = `${docWidth - anchorRec.left}px`
+    el.style.top = `${anchorRec.bottom}px`
+  } else if (position === "bottomCenter") {
+    el.style.right = `${boundingCenterH}px`
+    el.style.top = `${anchorRec.bottom}px`
+  } else {
+    el.style.left = `${anchorRec.right}px`
+    el.style.top = `${anchorRec.bottom}px`
+  }
+}
+
+export interface ContextModalOptions {
+  anchor?: HTMLElement | undefined
+  layout?: AnchorPosition | undefined
+  onOpen?: (() => void) | undefined
+  onClose?: (() => void) | undefined
+}
+
+export class ContextModal {
+  /**
+   * parent of wrapper
+   */
+  overlay
+  wrapper
+  private readonly anchor: HTMLElement | undefined
+  private readonly layout
+  private readonly onOpen
+  private readonly onClose
+  /**
+   * hooks will be called before the element opens/closes
+   * @param options.layout only used for anchored modals - default to "bottom-right"
+   */
+  constructor(options?: ContextModalOptions) {
+    this.layout = options?.layout
+    this.anchor = options?.anchor
+    this.onOpen = options?.onClose
+    this.onClose = options?.onClose
+
+    this.overlay = createEl("div")
+    this.overlay.className = "lu-modal-overlay"
+    this.overlay.addEventListener("click", this.handleOutsideClick)
+
+    this.wrapper = createEl("div", { cls: "lu-context-menu" })
+
+    this.handleOutsideClick.bind(this)
+    this.handleEscape.bind(this)
+    this.open.bind(this)
+    this.close.bind(this)
+  }
+
+  get isOpen() {
+    return this.wrapper.isConnected
+  }
+
+  private handleOutsideClick = (event: MouseEvent) => {
+    const target = event.target
+    if (!(target instanceof Node)) return
+    if (this.wrapper.contains(target)) return
+    const comPath = event.composedPath?.() as Node[] | undefined
+    if (comPath?.includes(this.wrapper)) return
+    this.close()
+  }
+
+  private handleEscape = (event: KeyboardEvent) => {
+    if (event.key !== "Escape") return
+    this.close()
+  }
+
+  open() {
+    if (this.isOpen) return
+    if (this.onOpen) {
+      this.onOpen()
+    }
+    if (this.anchor) {
+      setAbsoluteAnchoredPosition(this.wrapper, this.anchor, this.layout)
+    }
+    document.body.appendChild(this.overlay)
+    document.addEventListener("keydown", this.handleEscape)
+  }
+
+  close() {
+    if (!this.isOpen) return
+    if (this.onClose) {
+      this.onClose()
+    }
+    this.overlay.remove()
+    document.removeEventListener("keydown", this.handleEscape)
+  }
 }

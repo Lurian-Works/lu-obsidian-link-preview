@@ -32,6 +32,8 @@ export class PathRoot {
 export class PluginComposition {
   publicApi!: PublicApi
   devApi?: DevApi
+  ogpStore!: OgpStore
+  iconStore!: IconStore
 
   private config!: ConfigManager
   private openService?: OpenService
@@ -57,12 +59,12 @@ export class PluginComposition {
 
     const db = new LuLinkDb()
     const jsonStore = await JsonStore.init(pathRoot.storageRoot)
-    const ogpStore = new OgpStore(db)
-    const iconStore = new IconStore(db)
+    this.ogpStore = new OgpStore(db)
+    this.iconStore = new IconStore(db)
 
     this.config = await ConfigManager.init(jsonStore, `settings`)
 
-    this.pathUtils = new PathUtils(obsidian.vaultRoot)
+    this.pathUtils = new PathUtils(obsidian.vaultRoot, currentPlatform)
     this.openService =
       this.config.data.allowOutsideVault === true
         ? new OpenService({
@@ -78,8 +80,8 @@ export class PluginComposition {
 
     this.dataManager = new DataManager({
       luFs,
-      ogpStore,
-      iconStore,
+      ogpStore: this.ogpStore,
+      iconStore: this.iconStore,
       pathUtils: this.pathUtils,
       blockParser,
       inlineParser: inlineParser,
@@ -114,6 +116,8 @@ export class PluginComposition {
       this.config,
       this.dataManager,
       this.pathUtils,
+      this.ogpStore,
+      this.iconStore,
       this.openService,
     )
     this.devApi.activate()

@@ -3,14 +3,16 @@ import type { DataManager, InlineLinkParser } from "./data-manager"
 import type { OpenService } from "./filesystem/open-service"
 import { errorEl, linkCard } from "./presentation"
 import {
-  type CardDisplayOption,
+  type CardBlockOptions,
   type DvLink,
   type LinkInputObject,
   LinkObjectSchema,
+  URLSchema,
+  WebURLSchema,
 } from "./schema"
 import { getTextNodes } from "./utils/dom-helper"
 import { LuLinkError, luDebug } from "./utils/helper"
-import type { PathUtils } from "./utils/path-helper"
+import { type PathUtils, pathHelper } from "./utils/path-helper"
 
 const lcsDebug = luDebug("LinkCardService")
 
@@ -26,76 +28,92 @@ export class LinkCardService {
   ) {
     this.handleClick = this.handleClick.bind(this)
   }
-  handleClick(event: PointerEvent, path: string) {
+
+  handleClick = (event: PointerEvent, path: string) => {
     if (!this.deps.openService) throw new Error(`open service is not defined`)
     if (event.button === 0) {
       this.deps.openService?.open(path)
     }
   }
-  async linkCard(input: LinkInputObject | string) {
+
+  linkCard = async (input: LinkInputObject | string) => {
     const fooDebug = lcsDebug.extend(`linkCard`)
     fooDebug(`input: ${input}`)
 
-    const cardWrapper = createEl("div")
+    if (typeof input === "string") {
+      const parsedPath = URLSchema.safeParse(input)
+        ? input
+        : this.deps.pathUtils.toVaultPath(pathHelper.normalize(input))
+      const data = await this.deps.dataManager.getLinkData(parsedPath)
+      fooDebug(`data:`, data)
+      return linkCard({
+        data,
+        onClick: this.deps.openService ? this.handleClick : undefined,
+        settings: this.deps.settings.data,
+      })
+    }
+
+    const parsedFull = LinkObjectSchema.safeParse(input)
+    fooDebug("parsedFull", parsedFull)
+
+    if (parsedFull.success) {
+      fooDebug(`data:`, parsedFull.data)
+      return linkCard({
+        data: parsedFull.data,
+        onClick: this.deps.openService ? this.handleClick : undefined,
+        settings: this.deps.settings.data,
+      })
+    }
+
+    const data = await this.deps.dataManager.getLinkData(
+      pathHelper.normalize(input.path),
+    )
+    fooDebug("data", data)
+    return linkCard({
+      data: {
+        path: data.path,
+        hostname: input.hostname || data.hostname,
+        title: input.title || data.title,
+        description: input.description || data.description,
+        image: input.image || data.image,
+        display: input.display,
+      },
+      onClick: this.deps.openService ? this.handleClick : undefined,
+      settings: this.deps.settings.data,
+    })
+  }
+
+  codeblockCardBlock = async (text: string) => {
     try {
-      if (typeof input === "string") {
-        const data = await this.deps.dataManager.getLinkData(input)
-        cardWrapper.appendChild(
-          linkCard({
-            data,
-            onClick: this.deps.openService ? this.handleClick : undefined,
-            settings: this.deps.settings.data,
-          }),
-        )
-        return cardWrapper
-      }
-
-      const parsedFull = LinkObjectSchema.safeParse(input)
-      fooDebug("parsedFull", parsedFull)
-
-      if (parsedFull.success) {
-        return linkCard({
-          data: parsedFull.data,
-          onClick: this.deps.openService ? this.handleClick : undefined,
-          settings: this.deps.settings.data,
-        })
-      }
-      const data = await this.deps.dataManager.getLinkData(input.path)
-      fooDebug("data", data)
-      cardWrapper.appendChild(
-        linkCard({
-          data: {
-            path: data.path,
-            hostname: input.hostname || data.hostname,
-            title: input.title || data.title,
-            description: input.description || data.description,
-            image: input.image || data.image,
-            display: input.display,
-          },
-          onClick: this.deps.openService ? this.handleClick : undefined,
-          settings: this.deps.settings.data,
-        }),
-      )
-      return cardWrapper
-    } catch (e) {
-      cardWrapper.appendChild(errorEl(`LinkCard failed`))
-      throw console.error(`failed creating link card`, { cause: e })
+      const parsedText = await this.deps.dataManager.getBlockData(text)
+      return this.cardBlock(parsedText.links, parsedText.blockOptions)
+    } catch (error) {
+      console.error("Link preview failed:", error)
+      return errorEl("Link preview failed")
     }
   }
-  async renderCardBlock(text: string) {
-    const blockWrapper = createEl("div", { cls: "lc-block-wrapper" })
 
+  cardBlock = async (
+    links: (LinkInputObject | string)[],
+    options?: CardBlockOptions,
+  ) => {
+    const blockWrapper = createEl("div", { cls: "lc-block-wrapper" })
     try {
-      const linkObjects = await this.deps.dataManager.getBlockData(text)
-      for (const link of linkObjects.links) {
-        const card = await this.linkCard(link)
-        blockWrapper.appendChild(card)
-      }
-      if (linkObjects.blockOptions?.display === "inline") {
+      if (options?.display === "inline") {
         blockWrapper.classList.add("lu-lc-inline-wrapper")
       }
-      if (linkObjects.blockOptions?.display === "quad") {
+      if (options?.display === "quad") {
         blockWrapper.classList.add("lu-lc-quad-wrapper")
+      }
+
+      if (Array.isArray(links)) {
+        for (const link of links) {
+          const card = await this.linkCard(link)
+          blockWrapper.appendChild(card)
+        }
+      } else {
+        const card = await this.linkCard(links)
+        blockWrapper.appendChild(card)
       }
     } catch (error) {
       blockWrapper.appendChild(errorEl("Link preview failed"))
@@ -103,11 +121,12 @@ export class LinkCardService {
     }
     return blockWrapper
   }
+
   /**
    * replace all inlineLinkCard identifier with linkCards
    * @param element the element to serach in - can be any dom element
    */
-  async renderInlineLinks(element: HTMLElement) {
+  renderInlineLinks = async (element: HTMLElement) => {
     const fooDebug = lcsDebug.extend("renderInlineLinks")
     let i = 0
     const textNodes = getTextNodes(element)
@@ -175,28 +194,39 @@ export class LinkCardService {
     }
   }
 
-  parseYamlInput(yamlValue: string | string[] | DvLink | DvLink[]): string[] {
-    if (Array.isArray(yamlValue)) {
-      return yamlValue.map(val => {
+  yamlValToCardblock = async (yamlVal: unknown, options?: CardBlockOptions) => {
+    try {
+      const paths = this.parseYamlVal(yamlVal)
+      return this.cardBlock(paths, options)
+    } catch (e) {
+      return errorEl(`failed rendering yamlCardBlock`, { cause: e })
+    }
+  }
+
+  private parseYamlVal = (yamlValue: unknown): string[] => {
+    const valid = this.validateYamlInput(yamlValue)
+    if (Array.isArray(valid)) {
+      return valid.map(val => {
+        if (WebURLSchema.safeParse(val).success) return val as string
         return this.deps.pathUtils.resolveYamlPath(val)
       })
     }
-    return [this.deps.pathUtils.resolveYamlPath(yamlValue)]
+    return WebURLSchema.safeParse(valid).success
+      ? ([valid] as string[])
+      : [this.deps.pathUtils.resolveYamlPath(valid)]
   }
 
-  async yamlValToCardblock(yamlVal: unknown, display?: CardDisplayOption) {
-    if (!yamlVal) return
-    if (typeof yamlVal === "string" || isDvLink(yamlVal)) {
-      const paths = this.parseYamlInput(yamlVal)
-      const cardWrapper = createEl("div", { cls: "lc-block-wrapper" })
-      for (const p of paths) {
-        const card = await this.linkCard(display ? { path: p, display } : p)
-        cardWrapper.appendChild(card)
+  private validateYamlInput(value: unknown) {
+    if (typeof value === "string") return value
+    if (isDvLink(value)) return value
+    if (Array.isArray(value)) {
+      for (const val of value) {
+        if (!(typeof val === "string") && !isDvLink(val))
+          throw new LuLinkError(`invalid yaml input`)
       }
-      return cardWrapper
-    } else {
-      throw new LuLinkError(`invalid input`)
+      return value as string[] | DvLink[]
     }
+    throw new LuLinkError(`invalid yaml input`)
   }
 }
 

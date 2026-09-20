@@ -47,7 +47,7 @@ export class OpenService {
         this.deps.pathUtils.toFullPath(path),
         this.deps.platform,
       )
-      console.log(parsedPath)
+
       if (await pathHelper.isExistingFolder(parsedPath)) {
         this.openFolder(parsedPath)
       } else if (pathHelper.isAbsolute(parsedPath)) {

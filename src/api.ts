@@ -1,9 +1,19 @@
-import createDebug from "debug"
 import type { ConfigManager } from "./config/link-card-config"
 import type { DataManager } from "./data-manager"
 import type { OpenService } from "./filesystem/open-service"
 import type { LinkCardService } from "./link-card-service"
-import type { DvLink, LinkInputObject } from "./schema"
+import type {
+  IconStore,
+  OgpDataEntry,
+  OgpStore,
+} from "./repository/indexed-db-store"
+import type {
+  CardBlockOptions,
+  DvLink,
+  LinkInputObject,
+  OgpData,
+} from "./schema"
+import { luDebugger } from "./utils/helper"
 import type { PathUtils } from "./utils/path-helper"
 
 export class PublicApi {
@@ -19,14 +29,14 @@ export class PublicApi {
    * @returns a link card block or undefined if the yaml value is undefined.
    */
   yamlCard: (
-    yamlValue: string | string[] | DvLink | DvLink[],
+    yamlValue: string | DvLink | (string | DvLink)[],
   ) => Promise<HTMLElement | undefined>
 
   constructor(private readonly cardService: LinkCardService) {
     this.yamlCard = cardService.yamlValToCardblock
   }
   /**
-   * get alinkCard or block, automatically adds image description etc for a web urls
+   * get a linkCard or block, automatically adds image description etc for a web urls
    * manually setting an option when using LinkObject as input will overwrite the generated info
    * @param path can be one of the following:
    * 1. absolute path,
@@ -37,18 +47,20 @@ export class PublicApi {
    * 6. an array containing any of the previous
    * @returns a Link Card or a Link Card Block if path is an array
    */
-  async linkCard(
-    path: string | LinkInputObject | (string | LinkInputObject)[],
-  ) {
-    if (Array.isArray(path)) {
-      const wrapper = createEl("div", { cls: `lc-block-wrapper` })
-      for (const p of path) {
-        const card = await this.cardService.linkCard(p)
-        wrapper.appendChild(card)
-      }
-      return wrapper
-    }
+  async linkCard(path: string | LinkInputObject) {
     return this.cardService.linkCard(path)
+  }
+
+  /**
+   *
+   * @param links same as {@link PublicApi.linkCard} just as array
+   * @returns cardBlock container
+   */
+  async linkBlock(
+    links: (LinkInputObject | string)[],
+    options?: CardBlockOptions,
+  ) {
+    return this.cardService.cardBlock(links, options)
   }
 }
 
@@ -66,9 +78,15 @@ export class DevApi {
     private readonly __config: ConfigManager,
     private readonly __parser: DataManager,
     private readonly __pathUtils: PathUtils,
+    private readonly ogpStore: OgpStore,
+    private readonly iconStore: IconStore,
     private readonly __openService?: OpenService,
   ) {
-    this.debug = createDebug
+    this.debug = luDebugger
+  }
+  clearCache = async () => {
+    await this.ogpStore.clear()
+    await this.iconStore.clear()
   }
   activate() {
     this.config = this.__config
@@ -83,5 +101,8 @@ export class DevApi {
     this.pathUtils = undefined
     this.openService = undefined
     console.log(`LuLink: deactivated DevApi`)
+  }
+  enableDebug = () => {
+    this.debug.enable("LuLink:*")
   }
 }

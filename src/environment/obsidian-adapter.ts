@@ -27,7 +27,7 @@ export class ObsidianCardLink {
     this.plugin.registerMarkdownCodeBlockProcessor(
       this.codeBlockId,
       async (source, el) => {
-        el.appendChild(await this.cardService.renderCardBlock(source))
+        el.appendChild(await this.cardService.codeblockCardBlock(source))
       },
     )
   }

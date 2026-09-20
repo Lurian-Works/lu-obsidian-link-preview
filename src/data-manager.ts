@@ -2,6 +2,7 @@ import type { RequestUrlParam, RequestUrlResponsePromise } from "obsidian"
 import type { LuLinkFsAdapter } from "./filesystem/fs-adapter"
 import type { IconStore, OgpStore } from "./repository/indexed-db-store"
 import {
+  type CardBlockOptions,
   type CardDisplayOption,
   CardDisplayOptionSchema,
   type LinkInputObject,
@@ -42,7 +43,7 @@ export class DataManager {
    * @param path path, url or wiki/markdown-link containing those
    * @returns full LinkObjectData
    */
-  async getLinkData(path: string): Promise<LinkObject> {
+  getLinkData = async (path: string): Promise<LinkObject> => {
     const parsedPath = this.deps.pathUtils.parseInputString(path)
     if (parsedPath.type === "webUrl") {
       const stored = await this.deps.ogpStore.get(parsedPath.path)
@@ -59,25 +60,31 @@ export class DataManager {
         image: ogpData.image,
       }
     } else {
+      const normlizedPath = pathHelper.normalize(parsedPath.path)
+      const pathData = pathHelper.toObject(normlizedPath)
+      console.log(`normalized: ${normlizedPath}`)
       let image: string | undefined
-      if (pathHelper.isAbsolute(path)) {
-        const cached = await this.deps.iconStore.get(path)
+      if (pathHelper.isAbsolute(normlizedPath)) {
+        const cached = await this.deps.iconStore.get(normlizedPath)
 
         if (cached) {
           image = URL.createObjectURL(cached.image)
+          console.log(`cached: ${normlizedPath}`)
         } else {
           try {
-            image = await this.deps.luFs.getFileIcon(path)
+            const platformPath =
+              this.deps.pathUtils.toPlatformPath(normlizedPath)
+            console.log(`platform: ${platformPath}`)
+            image = await this.deps.luFs.getFileIcon(platformPath)
           } catch {}
           if (image) {
-            this.deps.iconStore.add({ path, imageUrl: image })
+            this.deps.iconStore.add({ path: normlizedPath, imageUrl: image })
           }
         }
       }
-      const pathData = pathHelper.toObject(parsedPath.path)
 
       return {
-        path: parsedPath.path,
+        path: normlizedPath,
         title: parsedPath.named || pathData.name,
         hostname: `local - ${pathData.base}`,
         image: image,
@@ -89,10 +96,12 @@ export class DataManager {
    * @param text full text of LuLink codeblock
    * @returns full LinkObject - options from the codeblock will have the highest priority and overwrite ogpData and fallbacks
    */
-  async getBlockData(text: string): Promise<{
+  getBlockData = async (
+    text: string,
+  ): Promise<{
     links: LinkObject[]
-    blockOptions?: { display: CardDisplayOption }
-  }> {
+    blockOptions?: CardBlockOptions
+  }> => {
     const fooDebug = dmDebug.extend("getBlockData")
     fooDebug(`input: ${text}`)
 
@@ -124,7 +133,7 @@ export class DataManager {
 
     return { links: finalData, blockOptions: blockData.blockOptions }
   }
-  async getOpenGraphData(url: string): Promise<OgpData> {
+  getOpenGraphData = async (url: string): Promise<OgpData> => {
     const response = await this.deps.requestUrl({
       url,
       method: "GET",
@@ -157,13 +166,13 @@ export class DataManager {
 
 export class InlineLinkParser {
   constructor(private readonly id: string) {}
-  regex(flag?: RegexFlag) {
+  readonly regex = (flag?: RegexFlag) => {
     return InlineLinkParser.regex(this.id, flag)
   }
-  findLinkSections(text: string) {
+  readonly findLinkSections = (text: string) => {
     return InlineLinkParser.findLinkSections(text, this.id)
   }
-  getLinkValues(input: string) {
+  readonly getLinkValues = (input: string) => {
     return InlineLinkParser.getLinkValues(input)
   }
   /**

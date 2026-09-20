@@ -44,6 +44,10 @@ export const HexColorSchema = z
 export const CardDisplayOptionSchema = z.literal(["inline", "quad"])
 export type CardDisplayOption = z.infer<typeof CardDisplayOptionSchema>
 
+export interface CardBlockOptions {
+  display?: CardDisplayOption
+}
+
 /**
  * title, description and color will overwrite the global settings or OGP Data
  * keys have to be lowerkase completely in order to simplify parsing raw text block inputs

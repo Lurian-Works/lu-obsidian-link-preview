@@ -1,11 +1,11 @@
+import createDebug from "debug"
 import { WebURLSchema } from "../schema"
-
 export class LuLinkError extends Error {}
 
-import createDebug from "debug"
+export const luDebugger = createDebug
 
 export function luDebug(namespace: string) {
-  return createDebug("LuLink").extend(namespace)
+  return luDebugger("LuLink").extend(namespace)
 }
 
 /**

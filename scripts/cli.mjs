@@ -18,7 +18,6 @@ const commands = {
 
 const commandId = process.argv[2]
 
-console.log(commandId)
 // run for example with "node scripts/root.js makeRelease patch"
 // or "npm run release -- patch"
 if (commandId === "makeRelease") {

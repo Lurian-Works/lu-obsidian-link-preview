@@ -75,7 +75,6 @@ export const pathHelper = {
   },
 
   fromFileUrl(url: string | URL) {
-    console.log(url)
     return this.normalize(fileURLToPath(url))
   },
 
@@ -249,6 +248,7 @@ export const mdLink = {
 export class PathUtils {
   constructor(
     private readonly vaultRoot: string,
+    private readonly platform: NodeJS.Platform,
     private readonly defaultLinkFormat?: "WikiLink" | "MarkdownLink",
   ) {}
   /**
@@ -259,7 +259,7 @@ export class PathUtils {
    * ("/Folder/npm data.ts") => "/Folder/npm data.ts"
    * ("C:/Vault Root/Folder/file") => "Folder/file"
    */
-  toVaultPath(path: string) {
+  toVaultPath = (path: string) => {
     const normalizedFull = this.toFullPath(path)
     const normalizedRoot = pathHelper.normalize(this.vaultRoot)
 
@@ -272,18 +272,22 @@ export class PathUtils {
    * @param inPath any path, can also be a folder path
    * @returns absolute path either unchanged or with vault root if it was relative
    */
-  toFullPath(inPath: string) {
+  toFullPath = (inPath: string) => {
     const normPath = pathHelper.normalize(inPath)
     if (pathHelper.isAbsolute(normPath)) return normPath
     return pathHelper.normalize(path.join(this.vaultRoot, normPath))
   }
 
-  pathToWikiLink(filePath: string) {
+  toPlatformPath = (path: string) => {
+    return pathHelper.toPlatform(pathHelper.normalize(path), this.platform)
+  }
+
+  pathToWikiLink = (filePath: string) => {
     const fileName = pathHelper.toObject(filePath).name
     return `[[${this.toVaultPath(filePath)}|${fileName}]]`
   }
 
-  pathToMarkdownLink(path: string) {
+  pathToMarkdownLink = (path: string) => {
     const file = pathHelper.toObject(this.toVaultPath(path))
     if (file.dir === "") {
       return file.ext === ""
@@ -300,7 +304,7 @@ export class PathUtils {
    * @param linkFormat overwrites the defaultLinkFormat of the parent class if set. default falls back to Wikilink since obsidian behaves kinda strange with md links sometimes
    * @returns
    */
-  pathToLink(path: string, linkFormat?: "WikiLink" | "MarkdownLink") {
+  pathToLink = (path: string, linkFormat?: "WikiLink" | "MarkdownLink") => {
     this.defaultLinkFormat
     if (linkFormat === "MarkdownLink") {
       return this.pathToMarkdownLink(path)
@@ -312,11 +316,13 @@ export class PathUtils {
    * @param input vaultPath, absolutePath, fileUrl, webUrl or wiki/markdown-link containing one of those
    * @returns vaulPathRepresentation or webUrl
    */
-  parseInputString(input: string): {
+  parseInputString = (
+    input: string,
+  ): {
     path: string
     named?: string
     type: "webUrl" | "localPath"
-  } {
+  } => {
     const isMdOrWiki = mdLink.isLink(input)
     const parsedLink = isMdOrWiki ? mdLink.parse(input) : undefined
 
@@ -330,7 +336,6 @@ export class PathUtils {
       }
     }
     const fileUrl = FileUrlSchema.safeParse(path)
-    console.log(fileUrl)
     const rawPath = fileUrl.success
       ? pathHelper.fromFileUrl(fileUrl.data)
       : path
@@ -370,21 +375,17 @@ export class PathUtils {
    * returns the value unchanged if its not a link-string or link-object
    */
   resolveYamlPath(propVal: string | DvLink) {
-    if (typeof propVal === "object" && "path" in propVal) {
-      const path = mdLink.isLink(propVal.path)
-        ? mdLink.toPath(propVal.path)
-        : FileUrlSchema.safeParse(propVal.path).success
-          ? pathHelper.fromFileUrl(propVal.path)
-          : propVal.path
-      return this.toVaultPath(path)
-    }
-    const path = mdLink.isLink(propVal)
-      ? mdLink.toPath(propVal)
-      : FileUrlSchema.safeParse(propVal).success
-        ? pathHelper.fromFileUrl(propVal)
-        : propVal
-    return this.toVaultPath(path)
+    const rawPath =
+      typeof propVal === "object" && "path" in propVal ? propVal.path : propVal
+
+    const path = mdLink.isLink(rawPath)
+      ? mdLink.toPath(rawPath)
+      : FileUrlSchema.safeParse(rawPath).success
+        ? pathHelper.fromFileUrl(rawPath)
+        : rawPath
+    return this.toVaultPath(pathHelper.normalize(path))
   }
+
   isVaultPath(inPath: string): boolean {
     const normPath = pathHelper.normalize(inPath)
     if (!normPath) return false
