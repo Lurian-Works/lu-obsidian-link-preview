@@ -35,7 +35,7 @@ export function toAbsoluteUrl(
   }
 }
 
-export function decodeHtml(value: string): string {
+export function HtmlToString(value: string): string {
   const textarea = document.createElement("textarea")
   textarea.innerHTML = value
   return textarea.value
@@ -43,10 +43,10 @@ export function decodeHtml(value: string): string {
 
 export function getHtmlTitle(html: string): string | undefined {
   const match = html.match(/<title[^>]*>(.*?)<\/title>/i)
-  return match?.[1] ? decodeHtml(match[1].trim()) : undefined
+  return match?.[1] ? HtmlToString(match[1].trim()) : undefined
 }
 
-export function getHtmlMeta(
+export function getHtmlMetaProperty(
   html: string,
   property: string,
 ): string | undefined {
@@ -71,7 +71,7 @@ export function getHtmlMeta(
 
   for (const pattern of patterns) {
     const match = html.match(pattern)
-    if (match?.[1]) return decodeHtml(match[1])
+    if (match?.[1]) return HtmlToString(match[1])
   }
 
   return undefined

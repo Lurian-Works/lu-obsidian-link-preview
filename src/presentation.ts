@@ -1,6 +1,7 @@
-import { modal } from "mycea-lib-ui"
 import type { LinkCardSettings } from "./config/link-card-config"
 import type { LinkObject } from "./schema"
+import { setAnchoredPosition } from "./utils/dom-helper"
+import type { AnchorPosition } from "./utils/geo-math"
 
 export function errorEl(message: string, options?: ErrorOptions) {
   let causeMessage: string | undefined
@@ -110,18 +111,11 @@ export function linkCard(options: {
   }
 
   // Hover
-  const HoverModal = new modal.description({
+  new HoverInfo({
     text: options.data.path,
     anchor: card,
-    position: "topCenter",
-    cls: "lu-lc-hover",
+    layout: "topCenter",
   })
-  new HoverTrigger(
-    card,
-    3000,
-    () => HoverModal.open(),
-    () => HoverModal.close(),
-  )
 
   // Image
   if (options.data.image) {
@@ -201,6 +195,13 @@ export class HoverTrigger {
     this.onCancel()
   }
 
+  clearTimer() {
+    if (this.timer !== undefined) {
+      clearTimeout(this.timer)
+      this.timer = undefined
+    }
+  }
+
   destroy() {
     this.leave()
     this.element.removeEventListener("pointerenter", this.enter)
@@ -208,91 +209,25 @@ export class HoverTrigger {
   }
 }
 
-export const anchorPositions = [
-  "topLeft",
-  "topRight",
-  "bottomLeft",
-  "bottomRight",
-  "topCenter",
-  "bottomCenter",
-] as const
-
-export type AnchorPosition = (typeof anchorPositions)[number]
-
-/**
- * @param position bottom right - default
- */
-export function setAbsoluteAnchoredPosition(
-  el: HTMLElement,
-  anchor: HTMLElement,
-  position?: AnchorPosition,
-) {
-  const anchorRec = anchor.getBoundingClientRect()
-  el.style.position = "fixed"
-
-  const docWidth = document.body.getBoundingClientRect().width
-  //const docHeight = document.body.getBoundingClientRect().height
-  const boundingCenterH =
-    (anchorRec.right - anchorRec.left) / 2 + anchorRec.left
-
-  if (position === "topLeft") {
-    el.style.right = `${docWidth - anchorRec.left}px`
-    el.style.bottom = `${anchorRec.bottom}px`
-  } else if (position === "topRight") {
-    el.style.left = `${anchorRec.right}px`
-    el.style.bottom = `${anchorRec.bottom}px`
-  } else if (position === "topCenter") {
-    el.style.right = `${boundingCenterH}px`
-    el.style.bottom = `${anchorRec.top}px`
-  } else if (position === "bottomLeft") {
-    el.style.right = `${docWidth - anchorRec.left}px`
-    el.style.top = `${anchorRec.bottom}px`
-  } else if (position === "bottomCenter") {
-    el.style.right = `${boundingCenterH}px`
-    el.style.top = `${anchorRec.bottom}px`
-  } else {
-    el.style.left = `${anchorRec.right}px`
-    el.style.top = `${anchorRec.bottom}px`
-  }
-}
-
-export interface ContextModalOptions {
-  anchor?: HTMLElement | undefined
-  layout?: AnchorPosition | undefined
+export interface ContextMenuOptions {
+  target: HTMLElement
+  content: HTMLElement | (() => HTMLElement | Promise<HTMLElement>)
+  boundary?: HTMLElement | (() => HTMLElement | Promise<HTMLElement>)
   onOpen?: (() => void) | undefined
   onClose?: (() => void) | undefined
 }
 
-export class ContextModal {
-  /**
-   * parent of wrapper
-   */
-  overlay
+export class ContextMenu {
   wrapper
-  private readonly anchor: HTMLElement | undefined
-  private readonly layout
-  private readonly onOpen
-  private readonly onClose
+  private target
   /**
    * hooks will be called before the element opens/closes
-   * @param options.layout only used for anchored modals - default to "bottom-right"
    */
-  constructor(options?: ContextModalOptions) {
-    this.layout = options?.layout
-    this.anchor = options?.anchor
-    this.onOpen = options?.onClose
-    this.onClose = options?.onClose
-
-    this.overlay = createEl("div")
-    this.overlay.className = "lu-modal-overlay"
-    this.overlay.addEventListener("click", this.handleOutsideClick)
-
+  constructor(private readonly options: ContextMenuOptions) {
     this.wrapper = createEl("div", { cls: "lu-context-menu" })
-
-    this.handleOutsideClick.bind(this)
-    this.handleEscape.bind(this)
-    this.open.bind(this)
-    this.close.bind(this)
+    this.target = this.options.target || document.body
+    document.addEventListener("click", this.handleOutsideClick)
+    this.target.addEventListener("click", e => {})
   }
 
   get isOpen() {
@@ -300,6 +235,7 @@ export class ContextModal {
   }
 
   private handleOutsideClick = (event: MouseEvent) => {
+    if (!this.isOpen) return
     const target = event.target
     if (!(target instanceof Node)) return
     if (this.wrapper.contains(target)) return
@@ -313,24 +249,122 @@ export class ContextModal {
     this.close()
   }
 
-  open() {
+  open = () => {
     if (this.isOpen) return
-    if (this.onOpen) {
-      this.onOpen()
-    }
-    if (this.anchor) {
-      setAbsoluteAnchoredPosition(this.wrapper, this.anchor, this.layout)
-    }
-    document.body.appendChild(this.overlay)
+    document.body.appendChild(this.wrapper)
     document.addEventListener("keydown", this.handleEscape)
   }
 
-  close() {
+  close = () => {
     if (!this.isOpen) return
-    if (this.onClose) {
-      this.onClose()
+    if (this.options.onClose) {
+      this.options.onClose()
     }
-    this.overlay.remove()
+    this.wrapper.remove()
     document.removeEventListener("keydown", this.handleEscape)
+  }
+}
+
+interface PopupOptions {
+  anchor?: HTMLElement | undefined
+  layout?: AnchorPosition | undefined
+  content?: HTMLElement
+  constrainToElememt?: HTMLElement
+  onOpen?: (() => void) | undefined
+  onClose?: (() => void) | undefined
+}
+
+export class Popup {
+  wrapper
+  constructor(private options: PopupOptions) {
+    this.wrapper = createEl("div", { cls: "lu-popup" })
+    if (options.content) {
+      this.wrapper.appendChild(options.content)
+    }
+  }
+
+  get isOpen() {
+    return this.wrapper.isConnected
+  }
+
+  open = () => {
+    if (this.isOpen) return
+    if (this.options.onOpen) {
+      this.options.onOpen()
+    }
+    if (this.options.anchor) {
+      setAnchoredPosition(this.options.anchor, this.wrapper, {
+        position: this.options.layout,
+        constrainToWindow: true,
+        constrainToElement: this.options.constrainToElememt,
+      })
+    }
+    document.body.appendChild(this.wrapper)
+  }
+
+  close = () => {
+    if (this.options.onClose) {
+      this.options.onClose()
+    }
+    if (!this.isOpen) return
+    this.wrapper.remove()
+  }
+}
+
+interface HoverPopupOptions extends PopupOptions {
+  anchor: HTMLElement
+  delay?: number
+}
+
+export class HoverPopup {
+  wrapper
+  hoverTrigger
+
+  constructor(private readonly options: HoverPopupOptions) {
+    this.wrapper = createEl("div", { cls: "lu-popup" })
+    this.hoverTrigger = new HoverTrigger(
+      options.anchor,
+      options.delay || 2500,
+      this.open,
+      this.close,
+    )
+  }
+
+  get isOpen() {
+    return this.wrapper.isConnected
+  }
+
+  open = () => {
+    if (this.isOpen) return
+    document.body.appendChild(this.wrapper)
+    setAnchoredPosition(this.options.anchor, this.wrapper, {
+      position: this.options.layout,
+      constrainToWindow: true,
+      constrainToElement: this.options.constrainToElememt,
+    })
+  }
+
+  close = () => {
+    if (!this.isOpen) return
+    this.wrapper.remove()
+    this.hoverTrigger.clearTimer()
+  }
+}
+
+interface InfoPopupOptions extends HoverPopupOptions {
+  heading?: string
+  text?: string
+}
+
+export class HoverInfo extends HoverPopup {
+  constructor(options: InfoPopupOptions) {
+    super(options)
+    this.wrapper.classList.add("lu-info-popup")
+    if (options.heading) {
+      this.wrapper.appendChild(createEl("h4", { text: options.heading }))
+    }
+    if (options.text) {
+      this.wrapper.appendChild(createEl("span", { text: options.text }))
+    }
   }
 }

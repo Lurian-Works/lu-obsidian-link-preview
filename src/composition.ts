@@ -114,10 +114,8 @@ export class PluginComposition {
     if (this.devApi) return
     this.devApi = new DevApi(
       this.config,
-      this.dataManager,
       this.pathUtils,
-      this.ogpStore,
-      this.iconStore,
+      this.dataManager,
       this.openService,
     )
     this.devApi.activate()

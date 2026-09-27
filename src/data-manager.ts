@@ -11,7 +11,7 @@ import {
   type OgpData,
 } from "./schema"
 import {
-  getHtmlMeta,
+  getHtmlMetaProperty,
   getHtmlTitle,
   LuLinkError,
   luDebug,
@@ -62,14 +62,12 @@ export class DataManager {
     } else {
       const normlizedPath = pathHelper.normalize(parsedPath.path)
       const pathData = pathHelper.toObject(normlizedPath)
-      console.log(`normalized: ${normlizedPath}`)
       let image: string | undefined
+
       if (pathHelper.isAbsolute(normlizedPath)) {
         const cached = await this.deps.iconStore.get(normlizedPath)
-
         if (cached) {
           image = URL.createObjectURL(cached.image)
-          console.log(`cached: ${normlizedPath}`)
         } else {
           try {
             const platformPath =
@@ -133,6 +131,7 @@ export class DataManager {
 
     return { links: finalData, blockOptions: blockData.blockOptions }
   }
+
   getOpenGraphData = async (url: string): Promise<OgpData> => {
     const response = await this.deps.requestUrl({
       url,
@@ -147,20 +146,27 @@ export class DataManager {
     const data = {
       url,
       title:
-        getHtmlMeta(html, "og:title")
-        || getHtmlMeta(html, "twitter:title")
+        getHtmlMetaProperty(html, "og:title")
+        || getHtmlMetaProperty(html, "twitter:title")
         || getHtmlTitle(html)
         || url,
       description:
-        getHtmlMeta(html, "og:description")
-        || getHtmlMeta(html, "twitter:description"),
+        getHtmlMetaProperty(html, "og:description")
+        || getHtmlMetaProperty(html, "twitter:description"),
       image: toAbsoluteUrl(
-        getHtmlMeta(html, "og:image") || getHtmlMeta(html, "twitter:image"),
+        getHtmlMetaProperty(html, "og:image")
+          || getHtmlMetaProperty(html, "twitter:image"),
         url,
       ),
-      siteName: getHtmlMeta(html, "og:site_name") || new URL(url).hostname,
+      siteName:
+        getHtmlMetaProperty(html, "og:site_name") || new URL(url).hostname,
     }
     return data
+  }
+
+  clearCache = async () => {
+    await this.deps.ogpStore.clear()
+    await this.deps.iconStore.clear()
   }
 }
 

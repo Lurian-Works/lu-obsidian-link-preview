@@ -39,6 +39,7 @@
   "dependencies": {
     "debug": "^4.4.3",
     "dexie": "^4.4.5",
+    "mathjs": "^15.2.0",
     "zod": "^4.5.4"
   }
 }

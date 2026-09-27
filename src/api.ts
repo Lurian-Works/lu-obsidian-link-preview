@@ -2,19 +2,9 @@ import type { ConfigManager } from "./config/link-card-config"
 import type { DataManager } from "./data-manager"
 import type { OpenService } from "./filesystem/open-service"
 import type { LinkCardService } from "./link-card-service"
-import type {
-  IconStore,
-  OgpDataEntry,
-  OgpStore,
-} from "./repository/indexed-db-store"
-import type {
-  CardBlockOptions,
-  DvLink,
-  LinkInputObject,
-  OgpData,
-} from "./schema"
+import type { CardBlockOptions, DvLink, LinkInputObject } from "./schema"
 import { luDebugger } from "./utils/helper"
-import type { PathUtils } from "./utils/path-helper"
+import { type PathUtils, pathHelper } from "./utils/path-helper"
 
 export class PublicApi {
   /**
@@ -70,39 +60,44 @@ export class PublicApi {
  */
 export class DevApi {
   config?: ConfigManager
-  parser?: DataManager
+  pathHelper?: typeof pathHelper
   pathUtils?: PathUtils
   openService?: OpenService
-  debug
+  dataManager?: DataManager
+  debug?: typeof luDebugger
+
   constructor(
     private readonly __config: ConfigManager,
-    private readonly __parser: DataManager,
     private readonly __pathUtils: PathUtils,
-    private readonly ogpStore: OgpStore,
-    private readonly iconStore: IconStore,
+    private readonly __dataManager: DataManager,
     private readonly __openService?: OpenService,
-  ) {
-    this.debug = luDebugger
-  }
+  ) {}
+
   clearCache = async () => {
-    await this.ogpStore.clear()
-    await this.iconStore.clear()
+    await this.__dataManager.clearCache()
   }
+
   activate() {
+    this.debug = luDebugger
+    this.dataManager = this.__dataManager
     this.config = this.__config
-    this.parser = this.__parser
+    this.pathHelper = pathHelper
     this.pathUtils = this.__pathUtils
     this.openService = this.__openService
     console.log(`LuLink: activated DevApi`)
   }
+
   deactivate() {
+    this.debug = undefined
+    this.dataManager = undefined
     this.config = undefined
-    this.parser = undefined
+    this.pathHelper = undefined
     this.pathUtils = undefined
     this.openService = undefined
     console.log(`LuLink: deactivated DevApi`)
   }
-  enableDebug = () => {
-    this.debug.enable("LuLink:*")
+
+  enableDebug = (namespace?: string) => {
+    luDebugger.enable(namespace ? namespace : "LuLink:*")
   }
 }

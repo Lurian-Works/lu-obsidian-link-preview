@@ -199,4 +199,8 @@
   text-overflow: ellipsis;
 }
 
+.lu-popup {
+  position: fixed;
+}
+
 /*# sourceMappingURL=styles.css.map */

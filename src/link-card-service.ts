@@ -228,6 +228,10 @@ export class LinkCardService {
     }
     throw new LuLinkError(`invalid yaml input`)
   }
+
+  clearCache = async () => {
+    this.deps.dataManager.clearCache()
+  }
 }
 
 export function isDvLink(value: unknown): value is DvLink {
