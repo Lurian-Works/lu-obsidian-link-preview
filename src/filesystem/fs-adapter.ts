@@ -31,7 +31,7 @@ export class LuLinkFsAdapter {
   }
 
   async pathInfo(path: string): Promise<PathInfo> {
-    const childPathInfo = pathHelper.toObject(path)
+    const childPathInfo = pathHelper.parse(path)
     const childStat = await stat(path)
 
     const simple = {

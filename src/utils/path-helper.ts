@@ -11,20 +11,19 @@ import {
 import { LuLinkError } from "./helper"
 
 /**
- * Vault Path Representation:
+ * Internal Path Representation:
+ * all paths should be normalized directly at the input boundary, where possible.
  * - `/` as separator
  * - percent-encoded characters decoded
  * - inside vault: relative to vault root, without seperator at the start
  * - outside vault: absolute file path
+ * @example `Folder inside vault/file.md`, `C:/Folder outside vault/file.md`
  */
-export const VaultPathRepresentation = [
-  "Folder inside vault/file.md",
-  "C:/Folder outside vault/file.md",
-] as const
+export type InternalPathRepresentation = string
 
 /**
- * all input paths (except for pathHelper.normalize) are expected to be valid paths/path-sections, so dont forget to normalized or validate them
- * output path are normalized
+ * all input paths (except for pathHelper.normalize) are expected to be internal path representations or sections.
+ * output paths stay normalized
  */
 export const pathHelper = {
   /**
@@ -57,7 +56,7 @@ export const pathHelper = {
         name: 'npm data'
       }
  */
-  toObject(inPath: string) {
+  parse(inPath: string) {
     return path.parse(inPath)
   },
 
@@ -253,7 +252,7 @@ export class PathUtils {
   ) {}
   /**
    * @param path - vault or absolute path
-   * @returns vault path {@link VaultPathRepresentation}
+   * @returns vault path {@link InternalPathRepresentation}
    * @example
    * ("C:/Users/User/My Plugin/npm data.ts") => "C:/Users/User/My Plugin/npm data.ts"
    * ("/Folder/npm data.ts") => "/Folder/npm data.ts"
@@ -283,12 +282,12 @@ export class PathUtils {
   }
 
   pathToWikiLink = (filePath: string) => {
-    const fileName = pathHelper.toObject(filePath).name
+    const fileName = pathHelper.parse(filePath).name
     return `[[${this.toVaultPath(filePath)}|${fileName}]]`
   }
 
   pathToMarkdownLink = (path: string) => {
-    const file = pathHelper.toObject(this.toVaultPath(path))
+    const file = pathHelper.parse(this.toVaultPath(path))
     if (file.dir === "") {
       return file.ext === ""
         ? `[${file.name}](${file.name})`
@@ -390,7 +389,7 @@ export class PathUtils {
     const normPath = pathHelper.normalize(inPath)
     if (!normPath) return false
 
-    const fullFile = pathHelper.toObject(this.toFullPath(normPath))
+    const fullFile = pathHelper.parse(this.toFullPath(normPath))
     if (
       pathHelper.isInsideFolder(fullFile.dir, this.vaultRoot)
       || fullFile.dir === this.vaultRoot

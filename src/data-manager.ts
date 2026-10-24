@@ -61,7 +61,7 @@ export class DataManager {
       }
     } else {
       const normlizedPath = pathHelper.normalize(parsedPath.path)
-      const pathData = pathHelper.toObject(normlizedPath)
+      const pathData = pathHelper.parse(normlizedPath)
       let image: string | undefined
 
       if (pathHelper.isAbsolute(normlizedPath)) {
