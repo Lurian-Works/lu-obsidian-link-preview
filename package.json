@@ -1,8 +1,13 @@
 {
   "name": "lu-link-preview",
-  "version": "1.0.0",
-  "license": "GPL 3.0",
+  "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
   "type": "module",
+  "author": {
+    "name": "Merlin Tadic",
+    "email": "info@lurianworks.com",
+    "url": "https://github.com/Lurian-Works"
+  },
   "scripts": {
     "build": "node esbuild.config.mjs",
     "build:dist": "node scripts/cli.mjs buildDist",
@@ -39,7 +44,6 @@
   "dependencies": {
     "debug": "^4.4.3",
     "dexie": "^4.4.5",
-    "mathjs": "^15.2.0",
     "zod": "^4.5.4"
   }
 }

@@ -3,7 +3,7 @@
   "name": "Lu Link Preview",
   "version": "0.1.0",
   "minAppVersion": "1.16.0",
-  "description": "Displays web links as Open Graph preview cards.",
+  "description": "A tool for working diplaying and interacting with web links and local paths",
   "author": "Lurian",
   "authorUrl": "https://github.com/Lurian-Works",
   "isDesktopOnly": false,

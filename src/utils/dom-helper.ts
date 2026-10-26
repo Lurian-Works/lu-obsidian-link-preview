@@ -1,11 +1,71 @@
-import {
-  type AnchorPosition,
-  BoundingBox,
-  calculateAnchorOffset,
-  calculateConstrainOffset,
-  intersectBounds,
-  type Vector2D,
-} from "./geo-math"
+import { simpleIdGen } from "./helper"
+
+export interface Vector2D {
+  x: number
+  y: number
+}
+
+/** starts an event listener and tracks the mouse position */
+export class MouseTracker {
+  private __ACTIVE?: boolean
+  private __pos: { x: number; y: number } | undefined
+  constructor(private target: HTMLElement) {
+    this.start()
+  }
+  private storePos = (event: MouseEvent) => {
+    this.__pos = {
+      x: event.clientX,
+      y: event.clientY,
+    }
+  }
+  start() {
+    if (this.__ACTIVE) return
+    this.target.addEventListener("mousemove", event => {
+      this.storePos(event)
+    })
+    this.__ACTIVE = true
+  }
+  stop() {
+    this.target.removeEventListener("mousemove", event => {
+      this.storePos(event)
+    })
+    this.__ACTIVE = false
+    this.__pos = undefined
+  }
+  get() {
+    return this.__pos ? { ...this.__pos } : undefined
+  }
+  get active() {
+    return this.__ACTIVE
+  }
+}
+
+const anchorIds = simpleIdGen()
+/**
+ * sets element position to fixed and applies css anchoring. if no positionArea or positionTryFallback are set it uses by deafult `top` and fallback `top, bottom, left, right`
+ * @returns the anchored element
+ */
+export function setAnchor(anchor: HTMLElement, element: HTMLElement) {
+  const anchorName = String(anchorIds.next())
+  anchor.style.anchorName = anchorName
+  element.style.position = "fixed"
+  element.style.positionAnchor = anchorName
+
+  if (!element.style.positionArea) element.style.positionArea = "top"
+  if (!element.style.positionTryFallbacks)
+    element.style.positionTryFallbacks = "top, bottom, left, right"
+  return element
+}
+
+/**@returns Element position to be `fixed`*/
+export function setPosition(element: HTMLElement, mousePos: Vector2D) {
+  element.style.left = `${mousePos.x}px`
+  element.style.top = `${mousePos.y}px`
+}
+
+export function applyOffset(element: HTMLElement, offset: Partial<Vector2D>) {
+  element.style.translate = `${offset.x || 0}px ${offset.y || 0}px`
+}
 
 export function getTextNodes(element: HTMLElement) {
   const textNodes: Text[] = []
@@ -14,116 +74,4 @@ export function getTextNodes(element: HTMLElement) {
     textNodes.push(walker.currentNode as Text)
   }
   return textNodes
-}
-
-/**
- * Applies a visual translation to the element.
- *
- * This is deliberately the only operation in the module that modifies
- * the DOM/CSS position.
- */
-function applyOffset(element: HTMLElement, offset: Vector2D): void {
-  element.style.translate = `${offset.x}px ${offset.y}px`
-}
-
-/**
- * Positions `element` relative to `anchor` and optionally constrains
- * the resulting position.
- */
-export function setAnchoredPosition(
-  anchor: HTMLElement,
-  element: HTMLElement,
-  options: {
-    position?: AnchorPosition
-    constrainToElement?: HTMLElement
-    constrainToWindow?: boolean
-  } = {},
-): void {
-  const position = options.position ?? "topRight"
-
-  const elementBounds = BoundingBox.fromElement(element)
-  const anchorBounds = BoundingBox.fromElement(anchor)
-  const anchorOffset = calculateAnchorOffset(
-    elementBounds.bounds,
-    anchorBounds.bounds,
-    position,
-  )
-  const boundary = getConstraintBoundary(options)
-
-  if (!boundary) {
-    applyOffset(element, anchorOffset)
-    return
-  }
-
-  elementBounds.translate(anchorOffset)
-  const constraintOffset = calculateConstrainOffset(
-    elementBounds.bounds,
-    boundary.bounds,
-  )
-
-  applyOffset(element, {
-    x: anchorOffset.x + constraintOffset.x,
-    y: anchorOffset.y + constraintOffset.y,
-  })
-}
-
-/**
- * Constrains an element to the requested boundaries.
- *
- * If both an element boundary and the viewport are enabled, their
- * intersection is used as the effective boundary.
- */
-export function constrainElement(
-  element: HTMLElement,
-  boundingElement?: HTMLElement,
-  constrainToWindow = false,
-): void {
-  const elementBounds = BoundingBox.fromElement(element)
-
-  const boundary = getConstraintBoundary({
-    constrainToElement: boundingElement,
-    constrainToWindow,
-  })
-  if (!boundary) {
-    return
-  }
-  const offset = calculateConstrainOffset(elementBounds.bounds, boundary.bounds)
-
-  applyOffset(element, offset)
-}
-
-/**
- * @returns
- * `BoundingBox`: constrain boundary which can be an intersection of window and element or one of those boundaries
- * `null`: failed
- * `undefined`: no constrain target
- */
-function getConstraintBoundary(options: {
-  constrainToElement?: HTMLElement
-  constrainToWindow?: boolean
-}): BoundingBox | null | undefined {
-  let boundary: BoundingBox | null | undefined = undefined
-
-  if (options.constrainToElement) {
-    boundary = BoundingBox.fromElement(options.constrainToElement)
-  }
-
-  if (options.constrainToWindow) {
-    const viewportBounds = BoundingBox.fromViewPort()
-
-    if (!boundary) {
-      boundary = viewportBounds
-    } else {
-      const intersection = intersectBounds(
-        boundary.bounds,
-        viewportBounds.bounds,
-      )
-
-      if (!intersection) {
-        return null
-      }
-    }
-  }
-
-  return boundary
 }

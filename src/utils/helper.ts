@@ -8,6 +8,14 @@ export function luDebug(namespace: string) {
   return luDebugger("LuLink").extend(namespace)
 }
 
+export function* simpleIdGen() {
+  let id = 1
+  while (true) {
+    yield id
+    id++
+  }
+}
+
 /**
  * extracts urls from any text that contains any
  */

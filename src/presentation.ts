@@ -1,7 +1,6 @@
 import type { LinkCardSettings } from "./config/link-card-config"
 import type { LinkObject } from "./schema"
-import { setAnchoredPosition } from "./utils/dom-helper"
-import type { AnchorPosition } from "./utils/geo-math"
+import { MouseTracker, setAnchor, setPosition } from "./utils/dom-helper"
 
 export function errorEl(message: string, options?: ErrorOptions) {
   let causeMessage: string | undefined
@@ -27,6 +26,23 @@ export function linkCardLoadingEl() {
 }
 
 // DOM HELPER
+
+export function modal() {
+  const modal = createEl("dialog")
+  modal.closedBy = "any"
+  modal.addEventListener("click", e => {
+    const dialogDimensions = modal.getBoundingClientRect()
+    if (
+      e.clientX < dialogDimensions.left
+      || e.clientX > dialogDimensions.right
+      || e.clientY < dialogDimensions.top
+      || e.clientY > dialogDimensions.bottom
+    ) {
+      modal.close()
+    }
+  })
+  return modal
+}
 
 export type ElementOptions = {
   cls?: string | readonly string[]
@@ -102,7 +118,7 @@ export function linkCard(options: {
     })
   }
 
-  // Display options
+  // Display Type
   if (options.data.display === "quad") {
     card.classList.add("lu-lc-quad")
   }
@@ -110,11 +126,11 @@ export function linkCard(options: {
     card.classList.add("lu-lc-inline")
   }
 
-  // Hover
-  new HoverInfo({
+  // Hover Info
+  const popup = new HoverPopup({
+    target: card,
     text: options.data.path,
-    anchor: card,
-    layout: "topCenter",
+    anchorToMouse: true,
   })
 
   // Image
@@ -179,14 +195,12 @@ export class HoverTrigger {
     element.addEventListener("pointerenter", this.enter)
     element.addEventListener("pointerleave", this.leave)
   }
-
   private enter = () => {
     this.timer = setTimeout(() => {
       this.timer = undefined
       this.onTrigger()
     }, this.delay)
   }
-
   private leave = () => {
     if (this.timer !== undefined) {
       clearTimeout(this.timer)
@@ -194,14 +208,12 @@ export class HoverTrigger {
     }
     this.onCancel()
   }
-
   clearTimer() {
     if (this.timer !== undefined) {
       clearTimeout(this.timer)
       this.timer = undefined
     }
   }
-
   destroy() {
     this.leave()
     this.element.removeEventListener("pointerenter", this.enter)
@@ -211,160 +223,93 @@ export class HoverTrigger {
 
 export interface ContextMenuOptions {
   target: HTMLElement
-  content: HTMLElement | (() => HTMLElement | Promise<HTMLElement>)
-  boundary?: HTMLElement | (() => HTMLElement | Promise<HTMLElement>)
-  onOpen?: (() => void) | undefined
-  onClose?: (() => void) | undefined
 }
-
 export class ContextMenu {
-  wrapper
-  private target
-  /**
-   * hooks will be called before the element opens/closes
-   */
-  constructor(private readonly options: ContextMenuOptions) {
-    this.wrapper = createEl("div", { cls: "lu-context-menu" })
-    this.target = this.options.target || document.body
-    document.addEventListener("click", this.handleOutsideClick)
-    this.target.addEventListener("click", e => {})
-  }
+  modal
+  private mousePosition
 
-  get isOpen() {
-    return this.wrapper.isConnected
+  /**@param target the element which the context menu belongs to */
+  constructor(private readonly target: HTMLElement) {
+    this.modal = modal()
+    this.modal.classList.add("lu-ctx-menu")
+    this.mousePosition = new MouseTracker(this.target)
+    this.target.addEventListener("click", e => {
+      if (e.button === 2) {
+        e.preventDefault()
+        this.open()
+      }
+    })
   }
-
-  private handleOutsideClick = (event: MouseEvent) => {
-    if (!this.isOpen) return
-    const target = event.target
-    if (!(target instanceof Node)) return
-    if (this.wrapper.contains(target)) return
-    const comPath = event.composedPath?.() as Node[] | undefined
-    if (comPath?.includes(this.wrapper)) return
-    this.close()
-  }
-
-  private handleEscape = (event: KeyboardEvent) => {
-    if (event.key !== "Escape") return
-    this.close()
-  }
-
   open = () => {
-    if (this.isOpen) return
-    document.body.appendChild(this.wrapper)
-    document.addEventListener("keydown", this.handleEscape)
+    const mousePos = this.mousePosition.get()
+    if (mousePos) setPosition(this.modal, mousePos)
+    this.modal.showModal()
   }
-
   close = () => {
-    if (!this.isOpen) return
-    if (this.options.onClose) {
-      this.options.onClose()
-    }
-    this.wrapper.remove()
-    document.removeEventListener("keydown", this.handleEscape)
+    this.modal.close()
+  }
+  destroy = () => {
+    this.mousePosition.stop()
+    this.modal.close()
+    this.target?.removeEventListener("click", e => {
+      if (e.button === 2) {
+        e.preventDefault()
+        this.open()
+      }
+    })
   }
 }
 
-interface PopupOptions {
-  anchor?: HTMLElement | undefined
-  layout?: AnchorPosition | undefined
-  content?: HTMLElement
-  constrainToElememt?: HTMLElement
-  onOpen?: (() => void) | undefined
-  onClose?: (() => void) | undefined
-}
-
-export class Popup {
-  wrapper
-  constructor(private options: PopupOptions) {
-    this.wrapper = createEl("div", { cls: "lu-popup" })
-    if (options.content) {
-      this.wrapper.appendChild(options.content)
-    }
-  }
-
-  get isOpen() {
-    return this.wrapper.isConnected
-  }
-
-  open = () => {
-    if (this.isOpen) return
-    if (this.options.onOpen) {
-      this.options.onOpen()
-    }
-    if (this.options.anchor) {
-      setAnchoredPosition(this.options.anchor, this.wrapper, {
-        position: this.options.layout,
-        constrainToWindow: true,
-        constrainToElement: this.options.constrainToElememt,
-      })
-    }
-    document.body.appendChild(this.wrapper)
-  }
-
-  close = () => {
-    if (this.options.onClose) {
-      this.options.onClose()
-    }
-    if (!this.isOpen) return
-    this.wrapper.remove()
-  }
-}
-
-interface HoverPopupOptions extends PopupOptions {
-  anchor: HTMLElement
+interface HoverPopupOptions {
+  /** element to listen for hover. will also be the anchor of the popup if not otherwise specified */
+  target: HTMLElement
+  /** true by default set position to the mouse position instead of anchoring to the target element. Falls back to anchor if the mouse position is not available*/
+  anchorToMouse?: boolean
   delay?: number
+  text?: string
 }
-
 export class HoverPopup {
   wrapper
   hoverTrigger
+  mousePos
 
   constructor(private readonly options: HoverPopupOptions) {
     this.wrapper = createEl("div", { cls: "lu-popup" })
+    this.wrapper.style.position = "fixed"
+    if (options.text) this.wrapper.textContent = options.text
+
+    if (this.options.anchorToMouse === false) {
+      setAnchor(this.options.target, this.wrapper)
+    } else {
+      this.mousePos = new MouseTracker(options.target)
+    }
     this.hoverTrigger = new HoverTrigger(
-      options.anchor,
+      options.target,
       options.delay || 2500,
       this.open,
       this.close,
     )
   }
-
   get isOpen() {
     return this.wrapper.isConnected
   }
-
   open = () => {
     if (this.isOpen) return
+    if (this.options.anchorToMouse !== false && this.mousePos) {
+      const pos = this.mousePos.get()
+      if (pos) {
+        setPosition(this.wrapper, pos)
+      }
+    }
     document.body.appendChild(this.wrapper)
-    setAnchoredPosition(this.options.anchor, this.wrapper, {
-      position: this.options.layout,
-      constrainToWindow: true,
-      constrainToElement: this.options.constrainToElememt,
-    })
   }
-
   close = () => {
     if (!this.isOpen) return
     this.wrapper.remove()
-    this.hoverTrigger.clearTimer()
   }
-}
-
-interface InfoPopupOptions extends HoverPopupOptions {
-  heading?: string
-  text?: string
-}
-
-export class HoverInfo extends HoverPopup {
-  constructor(options: InfoPopupOptions) {
-    super(options)
-    this.wrapper.classList.add("lu-info-popup")
-    if (options.heading) {
-      this.wrapper.appendChild(createEl("h4", { text: options.heading }))
-    }
-    if (options.text) {
-      this.wrapper.appendChild(createEl("span", { text: options.text }))
-    }
+  destroy = () => {
+    this.hoverTrigger?.destroy()
+    this.mousePos?.stop()
+    this.wrapper?.remove()
   }
 }
